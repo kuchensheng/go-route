@@ -1,0 +1,1 @@
+go build -o testplugsin_v1.so -buildmode=plugin testplugin.go

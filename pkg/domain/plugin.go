@@ -51,7 +51,12 @@ func InitPlugins() {
 		if err != nil {
 			log.Error().Msgf("插件[%s]加载异常", "")
 		} else {
-			p.Lookup(pluginInfo.Method)
+			symbol, err := p.Lookup(pluginInfo.Method)
+			if err != nil {
+				log.Error().Msgf("插件[%s]加载异常", "")
+			} else {
+				symbol.(func())()
+			}
 		}
 	}
 
