@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"plugin"
+	"sort"
 )
 
 var Plugins []PluginInfo
@@ -22,7 +23,7 @@ type PluginInfo struct {
 	Type   int    `json:"type"`
 }
 
-//InitMiddleWare 加载处理器
+//InitPlugins 加载插件
 func InitPlugins() {
 	if PluginConfigPath == "" {
 		wd, _ := os.Getwd()
@@ -41,6 +42,10 @@ func InitPlugins() {
 	if err != nil {
 		log.Fatal().Msgf("插件文件解析异常", err)
 	}
+	//todo 需要根据t'y'pe 进行分类处理
+	sort.SliceIsSorted(Plugins, func(i, j int) bool {
+		return Plugins[i].Order < Plugins[j].Order
+	})
 	for _, pluginInfo := range Plugins {
 		p, err := plugin.Open(pluginInfo.Path)
 		if err != nil {
@@ -50,4 +55,5 @@ func InitPlugins() {
 		}
 	}
 
+	//todo 监听插件配置文件/数据变化
 }
