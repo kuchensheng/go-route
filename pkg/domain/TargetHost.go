@@ -49,4 +49,6 @@ func InitRouteInfo() {
 	if err != nil {
 		log.Fatal().Msgf("配置文件读取异常,%v", err)
 	}
+	//todo 监听文件变化
+
 }

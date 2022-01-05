@@ -17,20 +17,36 @@ import (
 	"time"
 )
 
+var Router *gin.Engine
+
 func Forward(c *gin.Context) {
 	ch := make(chan error)
 	go func() {
 		//请求转发前的动作
-		middleware.PrepareMiddleWare()
-		uri := c.Request.RequestURI
-		targetHost, err := getTargetRoute(uri)
+		//ch <- middleware.PrepareMiddleWare()
+		err := middleware.PrepareMiddleWare()
 		if err != nil {
-			c.JSON(404, fmt.Errorf("目标资源寻找错误，%v", err))
-			return
+			c.JSON(400, fmt.Sprintf("前置处理器异常,%v", err))
+			ch <- err
+		} else {
+			uri := c.Request.RequestURI
+			targetHost, err := getTargetRoute(uri)
+			if err != nil {
+				c.JSON(404, fmt.Sprintf("目标资源寻找错误，%v", err))
+				ch <- err
+			} else {
+				ch <- hostReverseProxy(c.Writer, c.Request, *targetHost)
+			}
 		}
-		ch <- hostReverseProxy(c.Writer, c.Request, *targetHost)
+		err = middleware.PostMiddleWare()
+		if err != nil {
+			c.JSON(400, fmt.Sprintf("后置处理器异常,%v", err))
+			ch <- err
+		}
+		//c.Next()
 	}()
 	//请求转发后的动作
+
 	log.Debug().Msgf("代理转发完成%v", <-ch)
 }
 
@@ -83,7 +99,7 @@ func getTargetRoute(uri string) (*domain.RouteInfo, error) {
 			if p == "" {
 				continue
 			}
-			if p == "*" || p == "**" {
+			if strings.Contains(p, "*") {
 				match = true
 				break inner
 			}

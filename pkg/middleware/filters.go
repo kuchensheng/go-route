@@ -1,17 +1,28 @@
 package middleware
 
-import "github.com/gin-gonic/gin"
+import (
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"plugin"
+)
 
-// MiddleWare todo 这里是个业务请求链
+var plugsin []*plugin.Plugin
+
+// MiddleWare 全局拦截器
 func MiddleWare() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Request.Header.Get("t-header")
 	}
 }
 
-// MiddleWare todo 这里是个请求前的业务逻辑
-func PrepareMiddleWare() gin.HandlerFunc {
-	return func(context *gin.Context) {
-		context.Abort()
-	}
+// PrepareMiddleWare 前置拦截处理
+func PrepareMiddleWare() error {
+	//todo 设计处理器链
+
+	return fmt.Errorf("处理异常了")
+}
+
+// PostMiddleWare 后置拦截处理
+func PostMiddleWare() error {
+	return nil
 }
