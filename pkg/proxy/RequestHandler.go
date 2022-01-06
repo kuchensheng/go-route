@@ -4,11 +4,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"isc-route-service/pkg/domain"
-	"isc-route-service/pkg/middleware"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -17,40 +15,7 @@ import (
 	"time"
 )
 
-var Router *gin.Engine
-
-func Forward(c *gin.Context) {
-	ch := make(chan error)
-	go func() {
-		//请求转发前的动作
-		//ch <- middleware.PrepareMiddleWare()
-		err := middleware.PrepareMiddleWare()
-		if err != nil {
-			c.JSON(400, fmt.Sprintf("前置处理器异常,%v", err))
-			ch <- err
-		} else {
-			uri := c.Request.RequestURI
-			targetHost, err := getTargetRoute(uri)
-			if err != nil {
-				c.JSON(404, fmt.Sprintf("目标资源寻找错误，%v", err))
-				ch <- err
-			} else {
-				ch <- hostReverseProxy(c.Writer, c.Request, *targetHost)
-			}
-		}
-		err = middleware.PostMiddleWare()
-		if err != nil {
-			c.JSON(400, fmt.Sprintf("后置处理器异常,%v", err))
-			ch <- err
-		}
-		//c.Next()
-	}()
-	//请求转发后的动作
-
-	log.Debug().Msgf("代理转发完成%v", <-ch)
-}
-
-func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.RouteInfo) error {
+func HostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.RouteInfo) error {
 	targetUri := target.Url
 	remote, err := url.Parse(targetUri)
 	if err != nil {
@@ -87,7 +52,7 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 	return nil
 }
 
-func getTargetRoute(uri string) (*domain.RouteInfo, error) {
+func GetTargetRoute(uri string) (*domain.RouteInfo, error) {
 	//todo  根据uri解析到目标路由服务
 	for _, route := range domain.RouteInfos {
 		path := route.Path

@@ -1,28 +1,22 @@
 package middleware
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"plugin"
+	"isc-route-service/pkg/domain"
 )
-
-var plugsin []*plugin.Plugin
 
 // MiddleWare 全局拦截器
 func MiddleWare() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Request.Header.Get("t-header")
-	}
+	return middleWare()
 }
 
 // PrepareMiddleWare 前置拦截处理
-func PrepareMiddleWare() error {
-	//todo 设计处理器链
-
-	return fmt.Errorf("处理异常了")
+func PrepareMiddleWare(c *gin.Context, plugins []*domain.PluginPointer) error {
+	//处理器按照order字段已排序
+	return prepareMiddleWare(c, plugins)
 }
 
 // PostMiddleWare 后置拦截处理
 func PostMiddleWare() error {
-	return nil
+	return postMiddleWare()
 }

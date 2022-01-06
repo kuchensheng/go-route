@@ -1,9 +1,9 @@
 [
   {
-    "name": "插件名称",
-    "path": "插件so文件地址.so",
-    "order": "插件执行顺序",
-    "method": "执行方法",
-    "type" : "前后或后置方法"
+    "name": "测试插件",
+    "path": "D:\\worksapace\\go\\isc-route-service\\plugins\\test.dll",
+    "order": 1,
+    "method": "Hello",
+    "type" : 0
   }
 ]
