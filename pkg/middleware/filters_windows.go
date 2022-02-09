@@ -8,6 +8,7 @@ import (
 	"isc-route-service/pkg/domain"
 	"strings"
 	"syscall"
+	"unsafe"
 )
 
 // MiddleWare 全局拦截器
@@ -23,9 +24,12 @@ func prepareMiddleWare(c *gin.Context, plugins []*domain.PluginPointer) error {
 	for _, pp := range plugins {
 		//变量赋值
 		pi := pp.PI
-		reqVar := pp.Symbol
+		//reqVar := pp.Symbol
+		log.Info().Msgf("执行插件[%s]", pi.Name)
 		//方法执行
-		_, _, runtimeError := syscall.Syscall(reqVar.(uintptr), 0, 0, 0, 0)
+		proc := (*syscall.Proc)(unsafe.Pointer(pp.Symbol))
+		_, _, runtimeError := proc.Call(uintptr(unsafe.Pointer(c.Request))) //syscall.Syscall(reqVar, 0, 0, 0, 0)
+		proc = nil
 		if !strings.Contains(runtimeError.Error(), "success") {
 			log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v", pi.Name, pi.Method, runtimeError.Error())
 			return runtimeError

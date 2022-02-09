@@ -9,5 +9,16 @@
     "excludeUrl": ["/api/core/platform/**"],
     "specialUrl" : [],
     "version" : "20220105115302"
+  },
+  {
+    "path" : "/api/core/platform/**",
+    "serviceId" : "isc-pivot-platform",
+    "url" : "10.30.30.78:31107:31108",
+    "createTime" : "2020-12-20 17:22:55",
+    "updateTime" : "2022-01-05 11:38:32",
+    "protocol" : "tcp",
+    "excludeUrl": ["/api/core/platform/**"],
+    "specialUrl" : [],
+    "version" : "20220105115302"
   }
 ]

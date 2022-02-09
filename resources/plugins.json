@@ -2,6 +2,13 @@
   {
     "name": "测试插件",
     "path": "D:\\worksapace\\go\\isc-route-service\\plugins\\test.dll",
+    "order": 2,
+    "method": "Hello",
+    "type" : 0
+  },
+  {
+    "name": "我的测试插件",
+    "path": "D:\\worksapace\\go\\isc-route-service\\plugins\\testV1.dll",
     "order": 1,
     "method": "Hello",
     "type" : 0
