@@ -42,15 +42,19 @@ func Forward(c *gin.Context) {
 	go func() {
 		//请求转发前的动作
 		//ch <- middleware.PrepareMiddleWare()
-		err := middleware.PrepareMiddleWare(c, domain.PrePlugins)
+		uri := c.Request.RequestURI
+		targetHost, err := getTargetRoute(uri)
 		if err != nil {
-			c.JSON(400, fmt.Sprintf("前置处理器异常,%v", err))
+			c.JSON(404, fmt.Sprintf("目标资源寻找错误，%v", err))
 			ch <- err
 		} else {
-			uri := c.Request.RequestURI
-			targetHost, err := getTargetRoute(uri)
+			pre := domain.PrePlugins
+			for _, p := range pre {
+				p.RouteInfo = targetHost
+			}
+			err = middleware.PrepareMiddleWare(c, pre)
 			if err != nil {
-				c.JSON(404, fmt.Sprintf("目标资源寻找错误，%v", err))
+				c.JSON(400, fmt.Sprintf("前置处理器异常,%v", err))
 				ch <- err
 			} else {
 				ch <- hostReverseProxy(c.Writer, c.Request, *targetHost)

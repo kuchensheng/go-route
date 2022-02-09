@@ -1,6 +1,6 @@
 [
   {
-    "name": "测试插件",
+    "name": "授权校验",
     "path": "D:\\worksapace\\go\\isc-route-service\\plugins\\test.dll",
     "order": 2,
     "method": "Hello",

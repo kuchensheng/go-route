@@ -11,8 +11,9 @@ import (
 var RouteInfos []RouteInfo
 var ConfigPath string
 
+type Id int
 type RouteInfo struct {
-	//Id         int      `json:"id"`
+	Id
 	Path       string   `json:"path"`
 	ServiceId  string   `json:"serviceId"`
 	Url        string   `json:"url"`

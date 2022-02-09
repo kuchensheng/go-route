@@ -34,6 +34,12 @@ func prepareMiddleWare(c *gin.Context, plugins []*domain.PluginPointer) error {
 			log.Error().Msgf("插件[%s]变量[%s]读取异常,%v", pi.Name, "W", err)
 			continue
 		}
+		params, err := p.Lookup("Params")
+		if err != nil {
+			log.Warn().Msgf("插件[%s]变量读取异常,%v", pi.Name, "Params", err)
+		} else {
+			*params.(*interface{}) = pp.RouteInfo
+		}
 		*reqVar.(*http.Request) = *c.Request
 		*w.(*http.Response) = *c.Request.Response
 		method, err := p.Lookup(pi.Method)

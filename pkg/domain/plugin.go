@@ -31,6 +31,7 @@ type PluginPointer struct {
 	PI     PluginInfo
 	Plugin *plugin.Plugin
 	Symbol uintptr
+	*RouteInfo
 }
 
 const (
