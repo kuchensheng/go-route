@@ -2,7 +2,7 @@
 // +build linux,cgo darwin,cgo freebsd,cgo
 
 // Package plugins 登陆鉴权
-package plugins
+package main
 
 import (
 	"encoding/json"

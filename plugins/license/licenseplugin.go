@@ -2,7 +2,7 @@
 // +build linux,cgo darwin,cgo freebsd,cgo
 
 // Package license OS鉴权插件
-package license
+package main
 
 import "C"
 import (

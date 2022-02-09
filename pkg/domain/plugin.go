@@ -28,9 +28,9 @@ type PluginInfo struct {
 }
 
 type PluginPointer struct {
-	PI     PluginInfo
+	*PluginInfo
 	Plugin *plugin.Plugin
-	Symbol uintptr
+	Symbol interface{}
 	*RouteInfo
 }
 
