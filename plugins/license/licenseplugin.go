@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"io"
 	"isc-route-service/plugins"
+	"isc-route-service/utils"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -27,24 +28,13 @@ type LicenseConf struct {
 func init() {
 	log.Info().Msgf("授权校验插件初始化……")
 	pwd, _ := os.Getwd()
-	file, err := os.OpenFile(filepath.Join(pwd, "license.json"), os.O_RDWR|os.O_SYNC, 0666)
+	fp := filepath.Join(pwd, "license.json")
 	lc = &LicenseConf{
 		LicenseHost: "isc-license-service:9013",
 		LicenseUrl:  "/api/core/license/valid",
 	}
-	if err == nil {
-		data, err := io.ReadAll(file)
-		if err == nil {
-			err = json.Unmarshal(data, lc)
-			if err != nil {
-				log.Info().Msgf("配置文件读取失败%v", err)
-			}
-		} else {
-			log.Info().Msgf("配置文件读取失败%v", err)
-		}
-	} else {
-		log.Warn().Msgf("读取配置文件license.json异常%v", err)
-	}
+	utils.OpenFileAndUnmarshal(fp, lc)
+
 	//开启定时任务
 	cron := cron.New()
 	errTimes := 0

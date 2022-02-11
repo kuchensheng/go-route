@@ -36,26 +36,14 @@ type LoginConf struct {
 func init() {
 	fmt.Println("鉴权拦截差价")
 	pwd, _ := os.Getwd()
-	file, err := os.OpenFile(filepath.Join(pwd, "login.json"), os.O_RDWR|os.O_SYNC, 0666)
+	fp := filepath.Join(pwd, "login.json")
 	lc = &LoginConf{
 		LoginUrl:   "/api/permission/auth/login",
 		StatusUrl:  "/api/permission/auth/status",
 		LogoutUrl:  "/api/permission/auth/logout",
 		AuthServer: "isc-permission-service:32100",
 	}
-	if err == nil {
-		data, err := io.ReadAll(file)
-		if err == nil {
-			err = json.Unmarshal(data, lc)
-			if err != nil {
-				log.Info().Msgf("配置文件读取失败%v", err)
-			}
-		} else {
-			log.Info().Msgf("配置文件读取失败%v", err)
-		}
-	} else {
-		log.Warn().Msgf("鉴权配置文件读取异常%v", err)
-	}
+	utils.OpenFileAndUnmarshal(fp, lc)
 }
 
 //Login 函数则是我们需要在调用方显式查找的symbol
