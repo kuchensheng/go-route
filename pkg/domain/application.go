@@ -11,7 +11,7 @@ import (
 )
 
 var Application = make(map[string]interface{})
-var Profile = ""
+var Profile string
 
 func init() {
 	//初始化ApplicationConf
