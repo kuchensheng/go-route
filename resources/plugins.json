@@ -1,16 +1,16 @@
 [
   {
     "name": "授权校验",
-    "path": "D:\\worksapace\\go\\isc-route-service\\plugins\\test.dll",
-    "order": 2,
-    "method": "Hello",
+    "path": "/mnt/d/worksapace/go/isc-route-service/bin/licenseplugin-1.0.0.so",
+    "order": 0,
+    "method": "Valid",
     "type" : 0
   },
   {
-    "name": "我的测试插件",
-    "path": "D:\\worksapace\\go\\isc-route-service\\plugins\\testV1.dll",
+    "name": "登录校验",
+    "path": "/mnt/d/worksapace/go/isc-route-service/plugins/login/loginplugin-1.0.0.so",
     "order": 1,
-    "method": "Hello",
+    "method": "Login",
     "type" : 0
   }
 ]

@@ -1,7 +1,7 @@
 //go:build windows
 
 // Package plugins +build windows
-package main
+package plugins
 
 import "C"
 import (

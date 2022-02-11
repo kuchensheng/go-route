@@ -31,6 +31,7 @@ type PluginPointer struct {
 	*PluginInfo
 	Plugin *plugin.Plugin
 	Symbol interface{}
+	Type   int
 	*RouteInfo
 }
 
@@ -45,7 +46,7 @@ func InitPlugins() {
 		wd, _ := os.Getwd()
 		fp := filepath.Join(wd, "resources", "plugins.json")
 		if _, err := os.Stat(fp); os.IsNotExist(err) {
-			log.Fatal().Msg("路由配置文件不存在")
+			log.Fatal().Msg("插件配置文件不存在")
 		} else {
 			PluginConfigPath = fp
 		}

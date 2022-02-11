@@ -27,9 +27,11 @@ type RouteInfo struct {
 func InitRouteInfo() {
 	log.Info().Msg("初始加载路由规则")
 	cp := ConfigPath
+	log.Info().Msgf("初始加载路由规则配置文件:%s", cp)
 	if cp == "" {
 		wd, _ := os.Getwd()
 		fp := filepath.Join(wd, "resources", "routeInfo.json")
+		log.Info().Msgf("路由配置文件:%s", fp)
 		if _, err := os.Stat(fp); os.IsNotExist(err) {
 			log.Fatal().Msg("路由配置文件不存在")
 		} else {
