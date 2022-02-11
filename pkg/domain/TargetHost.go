@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/rs/zerolog/log"
 	"io"
+	"isc-route-service/watcher"
 	"os"
 	"path/filepath"
 )
@@ -38,20 +39,24 @@ func InitRouteInfo() {
 			cp = fp
 		}
 	}
-	log.Info().Msgf("读取文件路径%s", cp)
-	file, err := os.OpenFile(cp, os.O_RDWR, 0666)
-	if err != nil {
-		log.Fatal().Msgf("配置文件读取异常,%v", err)
+
+	handler := func(filepath string) {
+		log.Info().Msgf("读取文件路径%s", filepath)
+		file, err := os.OpenFile(filepath, os.O_RDWR, 0666)
+		if err != nil {
+			log.Fatal().Msgf("配置文件读取异常,%v", err)
+		}
+		fileContent, err := io.ReadAll(file)
+		if err != nil {
+			log.Fatal().Msgf("配置文件读取异常,%v", err)
+		}
+		err = json.Unmarshal(fileContent, &RouteInfos)
+		if err != nil {
+			log.Fatal().Msgf("配置文件读取异常,%v", err)
+		}
 	}
 
-	fileContent, err := io.ReadAll(file)
-	if err != nil {
-		log.Fatal().Msgf("配置文件读取异常,%v", err)
-	}
-	err = json.Unmarshal(fileContent, &RouteInfos)
-	if err != nil {
-		log.Fatal().Msgf("配置文件读取异常,%v", err)
-	}
+	handler(cp)
 	//todo 监听文件变化
-
+	watcher.AddWatcher(cp, handler)
 }

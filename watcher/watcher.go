@@ -6,7 +6,7 @@ import (
 )
 
 //AddWatcher 添加文件(夹)监听器
-func AddWatcher(watcherPath string) error {
+func AddWatcher(watcherPath string, handler func(filePath string)) error {
 	//创建一个监控对象
 	watcher, err := fsnotify.NewWatcher()
 	closeFunc := func() {
@@ -41,6 +41,7 @@ func AddWatcher(watcherPath string) error {
 				if ev.Op&fsnotify.Write == fsnotify.Write {
 					log.Info().Msgf("写入文件 ： %s", ev.Name)
 					//todo 读取最新变化内容
+					handler(watcherPath)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
