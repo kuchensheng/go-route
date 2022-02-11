@@ -9,6 +9,7 @@ import (
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog/log"
 	"io"
+	"isc-route-service/plugins"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -82,20 +83,6 @@ func init() {
 	log.Info().Msgf("授权校验插件初始化完成")
 }
 
-type PluginError struct {
-	s string
-}
-
-func (e *PluginError) Error() string {
-	resp := `
-	{
-		"code": 403,
-		"message":"OS未授权,请联系管理员"
-	}
-	`
-	return resp
-}
-
 //Valid 函数则是我们需要在调用方显式查找的symbol
 //export Valid
 func Valid(args ...interface{}) error {
@@ -103,7 +90,15 @@ func Valid(args ...interface{}) error {
 		return nil
 	}
 
-	err := &PluginError{}
+	err := &plugins.PluginError{
+		StatusCode: "403",
+		Content: `
+	{
+		"code": 403,
+		"message":"OS未授权,请联系管理员"
+	}
+	`,
+	}
 	return err
 }
 
