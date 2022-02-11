@@ -19,3 +19,10 @@ func Match(src, target string) bool {
 	}
 	return false
 }
+
+func IsInSlice(src []string, target string) bool {
+	for _, path := range src {
+		return Match(target, path)
+	}
+	return false
+}
