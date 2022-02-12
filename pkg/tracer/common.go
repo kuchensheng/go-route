@@ -1,14 +1,17 @@
 package tracer
 
 import (
+	"encoding/hex"
 	"fmt"
 	idworker "github.com/gitstliu/go-id-worker"
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog/log"
 	"isc-route-service/pkg/domain"
 	"net"
+	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -79,8 +82,13 @@ func InitLokiClient() {
 	}
 	Client = c
 }
+
+var SEQ atomic.Value
+var MAX = 8000
+
 func init() {
 	log.Info().Msgf("初始化信息跟踪动态库")
+	SEQ.Store(1)
 	currWorker.InitIdWorker(1500, 1)
 	InitLokiClient()
 	c := cron.New()
@@ -95,13 +103,40 @@ func init() {
 	})
 	c.Start()
 }
-func New() (*Tracer, error) {
-	newId, err := currWorker.NextId()
-	if err != nil {
-		return nil, err
+
+//GenerateTraceId 生成唯一traceId值
+func GenerateTraceId() string {
+	buffer := make([]byte, 16)
+	current := SEQ.Load().(int)
+	next := current
+	if current > MAX {
+		next = 1
+	} else {
+		next = current + 1
 	}
+	if SEQ.CompareAndSwap(current, next) {
+		buffer = append(buffer, byte(current))
+	}
+	buffer = append(buffer, byte(time.Now().UnixMilli()))
+	buffer = append(buffer, func() []byte {
+		localIp := GetLocalIp()
+		addrInt := ipAddrToInt(localIp)
+		c := strconv.FormatInt(addrInt, 2)
+		return []byte(c)
+	}()...)
+	buffer = append(buffer, byte(os.Getpid()))
+	var result []byte
+	hex.Decode(buffer, result)
+	return string(result)
+}
+func New() (*Tracer, error) {
+	//newId, err := currWorker.NextId()
+	//if err != nil {
+	//	return nil, err
+	//}
 	return &Tracer{
-		tracId:    strconv.FormatInt(newId, 19),
+		//tracId:    strconv.FormatInt(newId, 19),
+		tracId:    GenerateTraceId(),
 		sampled:   true,
 		startTime: time.Now().UnixMilli(),
 		rpcId:     "0",
@@ -165,4 +200,19 @@ func GetLocalIp() string {
 		}
 	}
 	return "127.0.0.1"
+}
+
+func ipAddrToInt(ipAddr string) int64 {
+	bits := strings.Split(ipAddr, ".")
+	b0, _ := strconv.Atoi(bits[0])
+	b1, _ := strconv.Atoi(bits[1])
+	b2, _ := strconv.Atoi(bits[2])
+	b3, _ := strconv.Atoi(bits[3])
+	var sum int64
+	sum += int64(b0) << 24
+	sum += int64(b1) << 16
+	sum += int64(b2) << 8
+	sum += int64(b3)
+
+	return sum
 }
