@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -61,34 +60,42 @@ func Forward(c *gin.Context) {
 	//开启tracer
 	tracer, err := startTrace(c.Request)
 	if err != nil {
+		log.Error().Msgf("链路跟踪服务端开启异常,\n%v", err)
 		ch <- err
 		return
 	}
-
+	//设置当前节点是服务端trace
 	tracer.Endpoint = tracer2.SERVER
+	//获取remoteIP
 	tracer.RemoteIp = c.Request.Host
 
+	//开启协程转发http请求
 	go func() {
 		//请求转发前的动作
+		//1.获取当前uri
 		uri := c.Request.RequestURI
+		//2.查看目标主机信息，clientRecovery
 		targetHost, err := getTargetRoute(uri)
 		if err != nil {
 			c.JSON(404, fmt.Sprintf("目标资源寻找错误，%v", err))
 			ch <- err
 		} else {
+			//这里的逻辑有点怪，每个pre插件都需要获取到routeInfo?先这样处理
 			pre := domain.PrePlugins
 			for _, p := range pre {
 				p.RouteInfo = targetHost
 			}
+			//执行前置插件，只要有一个插件抛出异常，则终止服务
 			err = middleware.PrepareMiddleWare(c, pre)
 			if err != nil {
+				//异常判断处理，如果是自定义异常，则需要进行相关转化
 				pe := &exception.BusinessException{}
 				if reflect.TypeOf(err) == reflect.TypeOf(pe) {
 					pe = err.(*exception.BusinessException)
 					statusCode := pe.StatusCode
 					c.JSON(statusCode, pe)
 				} else {
-					c.JSON(400, err.Error())
+					c.JSON(400, err)
 				}
 				ch <- err
 			} else {
@@ -96,9 +103,10 @@ func Forward(c *gin.Context) {
 			}
 		}
 
+		//转发完成后的一些动作处理，其实这里可以放到proxy.ModifiedResp中去
 		err = middleware.PostMiddleWare()
 		if err != nil {
-			c.JSON(400, fmt.Sprintf("后置处理器异常,%v", err))
+			c.JSON(400, err)
 			ch <- err
 		}
 		//c.Next()
@@ -106,6 +114,7 @@ func Forward(c *gin.Context) {
 	//请求转发后的动作
 	err = <-ch
 	log.Debug().Msgf("代理转发完成%v", err)
+	//结束跟踪
 	go func(err error) {
 		if err != nil {
 			tracer.EndTrace(tracer2.ERROR, err.Error())
@@ -116,6 +125,7 @@ func Forward(c *gin.Context) {
 
 }
 
+//这里用于创建http client，默认5s超时，超时处理暂未实现
 var transport = &http.Transport{
 	Proxy: http.ProxyFromEnvironment,
 	DialContext: (&net.Dialer{
@@ -128,6 +138,7 @@ var transport = &http.Transport{
 	ResponseHeaderTimeout: 5 * time.Second,
 }
 
+//hostReverseProxy 真正的转发逻辑，基于httputil.NewSingleHostReverseProxy 进行代理转发
 func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.RouteInfo) error {
 	targetUri := target.Url
 	remote, err := url.Parse(targetUri)
@@ -184,44 +195,7 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 	return nil
 }
 
-func generateTransport(w http.ResponseWriter, req *http.Request, target domain.RouteInfo) http.RoundTripper {
-	uri := req.URL.Path
-	dialcontext := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		deadline := time.Now().Add(5 * time.Second)
-		c, err := net.DialTimeout(network, addr, time.Second*1)
-		if isSpecialReq(uri, &target) {
-			deadline = time.Now().Add(5 * time.Minute)
-			c, err = net.DialTimeout(network, addr, time.Minute*5)
-		}
-		if err != nil {
-			return nil, err
-		}
-		c.SetDeadline(deadline)
-		return c, nil
-	}
-	var pTransport http.RoundTripper = &http.Transport{
-		DialContext:           dialcontext,
-		ResponseHeaderTimeout: time.Second * 5,
-	}
-
-	if target.Protocol != "" && strings.ToUpper(target.Protocol) == "HTTPS" {
-		tls, err := getVerTLSConfig("")
-		if err != nil {
-			msg := fmt.Sprintf("https crt error:%v", err)
-			log.Error().Msg(msg)
-			w.WriteHeader(http.StatusBadGateway)
-			w.Write([]byte(msg))
-			return nil
-		}
-		pTransport = &http.Transport{
-			DialTLSContext:        dialcontext,
-			ResponseHeaderTimeout: time.Second * 5,
-			TLSClientConfig:       tls,
-		}
-	}
-	return pTransport
-}
-
+//isSpecialReq 判断是否符合特殊处理，若符合则设置超时时间为5分钟
 func isSpecialReq(uri string, targetRoute *domain.RouteInfo) bool {
 	if len(targetRoute.SpecialUrl) == 0 {
 		return false
@@ -249,8 +223,9 @@ func isSpecialReq(uri string, targetRoute *domain.RouteInfo) bool {
 	return false
 }
 
+//getTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
 func getTargetRoute(uri string) (*domain.RouteInfo, error) {
-	//todo  根据uri解析到目标路由服务
+	// 根据uri解析到目标路由服务
 	for _, route := range domain.RouteInfos {
 		path := route.Path
 		if utils.Match(uri, path) {
@@ -260,6 +235,7 @@ func getTargetRoute(uri string) (*domain.RouteInfo, error) {
 	return nil, fmt.Errorf("路由规则不存在")
 }
 
+//getVerTLSConfig 获取证书信息，CaPath表示证书路径，如果获取不到则表示跳过证书
 func getVerTLSConfig(CaPath string) (*tls.Config, error) {
 	if CaPath == "" {
 		return &tls.Config{

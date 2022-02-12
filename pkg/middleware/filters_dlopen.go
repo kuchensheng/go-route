@@ -50,9 +50,7 @@ func prepareMiddleWare(c *gin.Context, plugins []*domain.PluginPointer) error {
 			}
 			return nil
 		}()
-		if e := recover(); e != nil {
-			return err
-		}
+		return err
 	}
 
 	return nil
