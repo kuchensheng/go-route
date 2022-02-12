@@ -51,8 +51,9 @@ func main() {
 	//todo 拦截器
 	router.Any("/*action", proxy.Forward)
 	pr := *port
-	if p, ok := domain.ApplicationConfig.Conf["server.port"]; ok {
-		pr = *p.(*int)
+	p := domain.ApplicationConfig.Server.Port
+	if p != 0 {
+		pr = p
 	}
 	log.Info().Msgf("服务启动占用端口，%d", pr)
 	router.Run(fmt.Sprintf(":%d", pr))
