@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"isc-route-service/pkg/domain"
@@ -10,7 +11,7 @@ import (
 )
 
 func main() {
-	port := flag.String("port", "31000", "http路由服务启动端口号,默认31000")
+	port := flag.Int("port", 31000, "http路由服务启动端口号,默认31000")
 	tcpPort := flag.Int("tcpPort", 31080, "tcp路由服务启动端口号,默认31080")
 	udpPort := flag.String("updPort", "31053", "tcp路由服务启动端口号,默认31053")
 	flag.StringVar(&domain.ConfigPath, "conf", "", "路由规则定义文件地址,默认/home/resources/routeInfo.json")
@@ -18,10 +19,12 @@ func main() {
 	flag.StringVar(&domain.Profile, "profiles", "", "指定的配置文件地址，例如dev,表示加载application-dev.yaml信息")
 
 	flag.Parse()
-	log.Info().Msgf("服务启动占用端口，%s", *port)
 	//初始加载路由规则
 	domain.InitRouteInfo()
+	//初始化加载动态库信息
 	domain.InitPlugins()
+	//读取指定配置文件信息
+	domain.ReadProfileYaml()
 	go func() {
 		log.Info().Msgf("tcp服务监听占用端口:%d", *tcpPort)
 		tcpListener, err := net.ListenTCP("tcp", &net.TCPAddr{Port: *tcpPort})
@@ -47,5 +50,10 @@ func main() {
 	router.Use(gin.Logger(), gin.Recovery())
 	//todo 拦截器
 	router.Any("/*action", proxy.Forward)
-	router.Run(":" + *port)
+	pr := *port
+	if p, ok := domain.ApplicationConfig.Conf["server.port"]; ok {
+		pr = *p.(*int)
+	}
+	log.Info().Msgf("服务启动占用端口，%d", pr)
+	router.Run(fmt.Sprintf(":%d", pr))
 }

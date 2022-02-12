@@ -9,15 +9,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"isc-route-service/pkg/domain"
+	"isc-route-service/pkg/exception"
 	"isc-route-service/pkg/middleware"
-	"isc-route-service/plugins"
 	"isc-route-service/utils"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -59,15 +58,11 @@ func Forward(c *gin.Context) {
 			}
 			err = middleware.PrepareMiddleWare(c, pre)
 			if err != nil {
-				pe := &plugins.PluginError{}
+				pe := &exception.BusinessException{}
 				if reflect.TypeOf(err) == reflect.TypeOf(pe) {
-					pe = err.(*plugins.PluginError)
+					pe = err.(*exception.BusinessException)
 					statusCode := pe.StatusCode
-					if statusCode == "" {
-						statusCode = "400"
-					}
-					code, _ := strconv.Atoi(statusCode)
-					c.JSON(code, pe.Content)
+					c.JSON(statusCode, pe)
 				} else {
 					c.JSON(400, err.Error())
 				}

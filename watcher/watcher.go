@@ -7,6 +7,7 @@ import (
 
 //AddWatcher 添加文件(夹)监听器
 func AddWatcher(watcherPath string, handler func(filePath string)) error {
+	log.Info().Msgf("监听文件(夹):%s", watcherPath)
 	//创建一个监控对象
 	watcher, err := fsnotify.NewWatcher()
 	closeFunc := func() {

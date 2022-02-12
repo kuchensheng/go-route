@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/rs/zerolog/log"
-	"isc-route-service/plugins"
+	"isc-route-service/pkg/exception"
 	"isc-route-service/utils"
 	"net/http"
 	"os"
@@ -36,12 +36,10 @@ func Valid(args ...interface{}) error {
 	iscAccessToken := req.Header.Get(IscAccessTokenKey)
 	log.Info().Msgf("公共服务请求,isc-access-token=%s", iscAccessToken)
 	if iscAccessToken == "" {
-		return &plugins.PluginError{
-			StatusCode: "403",
-			Content: `{
-				"code": 403,
-				"message":"应用无权限访问"
-			}`,
+		return &exception.BusinessException{
+			StatusCode: 403,
+			Code:       1040403,
+			Message:    "应用无权限访问",
 		}
 	} else {
 		//todo 需要连接redis

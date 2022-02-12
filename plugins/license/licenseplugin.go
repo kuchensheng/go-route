@@ -9,7 +9,7 @@ import (
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog/log"
 	"io"
-	"isc-route-service/plugins"
+	"isc-route-service/pkg/exception"
 	"isc-route-service/utils"
 	"net/http"
 	"os"
@@ -80,14 +80,10 @@ func Valid(args ...interface{}) error {
 		return nil
 	}
 
-	err := &plugins.PluginError{
-		StatusCode: "403",
-		Content: `
-	{
-		"code": 403,
-		"message":"OS未授权,请联系管理员"
-	}
-	`,
+	err := &exception.BusinessException{
+		StatusCode: 403,
+		Code:       1040403,
+		Message:    "OS未授权，请联系管理员",
 	}
 	return err
 }

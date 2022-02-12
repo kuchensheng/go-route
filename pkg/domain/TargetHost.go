@@ -58,5 +58,7 @@ func InitRouteInfo() {
 
 	handler(cp)
 	//todo 监听文件变化
-	watcher.AddWatcher(cp, handler)
+	go func() {
+		watcher.AddWatcher(cp, handler)
+	}()
 }

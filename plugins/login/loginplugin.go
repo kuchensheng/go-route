@@ -10,12 +10,11 @@ import (
 	"github.com/wxnacy/wgo/arrays"
 	"io"
 	"isc-route-service/pkg/domain"
-	"isc-route-service/plugins"
+	"isc-route-service/pkg/exception"
 	"isc-route-service/utils"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -34,7 +33,7 @@ type LoginConf struct {
 
 // init 函数的目的是在插件模块加载的时候自动执行一些我们要做的事情，比如：自动将方法和类型注册到插件平台、输出插件信息等等。
 func init() {
-	fmt.Println("鉴权拦截差价")
+	log.Info().Msgf("初始化登录鉴权插件")
 	pwd, _ := os.Getwd()
 	fp := filepath.Join(pwd, "login.json")
 	lc = &LoginConf{
@@ -68,7 +67,7 @@ func Login(args ...interface{}) error {
 	}
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil)
 	if err != nil {
-		log.Error().Msgf("登陆鉴权服务请求异常%v", err)
+		log.Error().Msgf("登录鉴权服务请求异常%v", err)
 		return err
 	}
 	req.Header = Req.Header
@@ -80,7 +79,7 @@ func Login(args ...interface{}) error {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error().Msgf("登陆鉴权服务请求异常%v", err)
+		log.Error().Msgf("登录鉴权服务请求异常%v", err)
 		return err
 	}
 	body := resp.Body
@@ -99,9 +98,11 @@ func Login(args ...interface{}) error {
 		if response != nil {
 			response.StatusCode = 401
 		}
-		return &plugins.PluginError{
-			StatusCode: strconv.Itoa(resp.StatusCode),
-			Content:    jsonData,
+		return &exception.BusinessException{
+			StatusCode: 401,
+			Code:       1040401,
+			Message:    "登录鉴权未通过",
+			Data:       jsonData,
 		}
 	}
 
