@@ -40,6 +40,9 @@ type AppServerConf struct {
 		Password   string   `yaml:"password"`
 		DB         int      `yaml:"db"`
 	} `yaml:"redis"`
+	Loki struct {
+		Host string `yaml:"host"`
+	} `yaml:"loki"`
 }
 type ApplicationConf struct {
 	Conf map[string]interface{}

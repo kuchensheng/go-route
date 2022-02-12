@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/oliveagle/jsonpath"
 	"github.com/rs/zerolog/log"
 	"github.com/wxnacy/wgo/arrays"
 	"io"
@@ -29,6 +28,18 @@ type LoginConf struct {
 	StatusUrl  string `json:"status_url"`
 	LogoutUrl  string `json:"logout_url"`
 	AuthServer string `json:"auth_server"`
+}
+
+type Status struct {
+	Code int `json:"code"`
+	Data struct {
+		UserId    string   `json:"userId"`
+		LoginName string   `json:"loginName"`
+		RoleId    []string `json:"roleId"`
+		NickName  string   `json:"nickname"`
+		TenantId  string   `json:"tenantId"`
+		UserType  string   `json:"userType"`
+	} `json:"data"`
 }
 
 // init 函数的目的是在插件模块加载的时候自动执行一些我们要做的事情，比如：自动将方法和类型注册到插件平台、输出插件信息等等。
@@ -88,8 +99,8 @@ func Login(args ...interface{}) error {
 	if err != nil {
 		return err
 	}
-	var jsonData interface{}
-	json.Unmarshal(data, &jsonData)
+	jsonData := &Status{}
+	json.Unmarshal(data, jsonData)
 	if err != nil {
 		return err
 	}
@@ -106,14 +117,13 @@ func Login(args ...interface{}) error {
 		}
 	}
 
-	code, err := jsonpath.JsonPathLookup(jsonData, "$.code")
-	if err != nil {
-		return err
-	}
-	c := int(code.(float64))
-	if c != 0 || c != 200 {
+	c := jsonData.Code
+	if c != 0 && c != 200 {
 		return errors.New("鉴权失败")
 	}
+	//验证通过后，添加请求头
+	Req.Header.Set("t-head-userId", jsonData.Data.UserId)
+	Req.Header.Set("t-head-userName", jsonData.Data.LoginName)
 	return nil
 }
 

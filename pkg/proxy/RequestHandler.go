@@ -11,6 +11,7 @@ import (
 	"isc-route-service/pkg/domain"
 	"isc-route-service/pkg/exception"
 	"isc-route-service/pkg/middleware"
+	tracer2 "isc-route-service/pkg/tracer"
 	"isc-route-service/utils"
 	"net"
 	"net/http"
@@ -38,14 +39,37 @@ func TCPForward(proxyConn *net.TCPConn) {
 	log.Info().Msgf("localAddr : %v", proxyConn.LocalAddr())
 	log.Info().Msgf("remoteAddr : %v", proxyConn.RemoteAddr())
 }
+func startTrace(c *http.Request) (*tracer2.Tracer, error) {
+	//开启tracer
+	tracer, err := tracer2.New()
+	if err != nil {
+		return nil, err
+	}
+	tracer.TraceType = tracer2.HTTP
+	tracer.RemoteIp = getRemoteIp(c)
+	return tracer, nil
+}
+
+func getRemoteIp(c *http.Request) string {
+	return c.RemoteAddr
+}
 
 //Forward http请求转发
 func Forward(c *gin.Context) {
 	ch := make(chan error)
 	defer close(ch)
+	//开启tracer
+	tracer, err := startTrace(c.Request)
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	tracer.Endpoint = tracer2.SERVER
+	tracer.RemoteIp = c.Request.Host
+
 	go func() {
 		//请求转发前的动作
-		//ch <- middleware.PrepareMiddleWare()
 		uri := c.Request.RequestURI
 		targetHost, err := getTargetRoute(uri)
 		if err != nil {
@@ -80,7 +104,15 @@ func Forward(c *gin.Context) {
 		//c.Next()
 	}()
 	//请求转发后的动作
-	log.Debug().Msgf("代理转发完成%v", <-ch)
+	err = <-ch
+	log.Debug().Msgf("代理转发完成%v", err)
+	go func(err error) {
+		if err != nil {
+			tracer.EndTrace(tracer2.ERROR, err.Error())
+		} else {
+			tracer.EndTrace(tracer2.OK, "")
+		}
+	}(err)
 
 }
 
@@ -128,10 +160,26 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 	}
+	//traceClient处理,tracer.enter
+	trace, err := startTrace(req)
+	if err != nil {
+		log.Warn().Msgf("链路跟踪客户端初始化异常，将不开启客户端跟踪\n%v", err)
+	} else {
+		trace.TraceName = fmt.Sprintf("<%s>%s", req.Method, req.URL.Path)
+		trace.Endpoint = tracer2.CLIENT
+	}
 	proxy.ServeHTTP(w, req)
 	proxy.ModifyResponse = func(response *http.Response) error {
 		//todo 代理响应处理，这里可以作为数据脱敏等处理
+		go func() {
+			trace.EndTrace(tracer2.OK, "")
+		}()
 		return middleware.PostMiddleWare()
+	}
+	proxy.ErrorHandler = func(http.ResponseWriter, *http.Request, error) {
+		go func() {
+			trace.EndTrace(tracer2.WARNING, err.Error())
+		}()
 	}
 	return nil
 }

@@ -71,9 +71,9 @@ func CreateClient(url string, maxBatch int, maxWaitTime time.Duration) (*LokiCli
 		streams:     make(chan *jsonStream),
 	}
 	client.initEndpoints()
-	if !client.IsReady() {
-		return &client, errors.New("The server on: " + url + "isn't ready.")
-	}
+	//if !client.IsReady() {
+	//	return &client, errors.New("The server on: " + url + "isn't ready.")
+	//}
 
 	client.wait.Add(1)
 
@@ -156,6 +156,9 @@ func (client *LokiClient) AddStream(labels map[string]string, messages []Message
 
 // Encodes the messages and sends them to loki
 func (client *LokiClient) send() error {
+	if len(client.currentMessage.Streams) == 0 {
+		return nil
+	}
 	str, err := json.Marshal(client.currentMessage)
 	if err != nil {
 		return err

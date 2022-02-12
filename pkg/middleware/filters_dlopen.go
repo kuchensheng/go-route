@@ -42,10 +42,16 @@ func prepareMiddleWare(c *gin.Context, plugins []*domain.PluginPointer) error {
 			continue
 		}
 		//方法执行
-		runtimeError := method.(func(args ...interface{}) error)(c.Request, pp.RouteInfo)
-		if runtimeError != nil && runtimeError.Error() != "" {
-			log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v", pp.Name, pp.Method, err)
-			return runtimeError
+		err = func() error {
+			runtimeError := method.(func(args ...interface{}) error)(c.Request, pp.RouteInfo)
+			if runtimeError != nil && runtimeError.Error() != "" {
+				log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v", pp.Name, pp.Method, err)
+				return runtimeError
+			}
+			return nil
+		}()
+		if e := recover(); e != nil {
+			return err
 		}
 	}
 
