@@ -8,12 +8,9 @@ import (
 	"github.com/oliveagle/jsonpath"
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog/log"
+	plugins "go.mod/common"
 	"io"
-	"isc-route-service/pkg/exception"
-	"isc-route-service/utils"
 	"net/http"
-	"os"
-	"path/filepath"
 )
 
 var lc *LicenseConf
@@ -27,13 +24,11 @@ type LicenseConf struct {
 // init 函数的目的是在插件模块加载的时候自动执行一些我们要做的事情，比如：自动将方法和类型注册到插件平台、输出插件信息等等。
 func init() {
 	log.Info().Msgf("授权校验插件初始化……")
-	pwd, _ := os.Getwd()
-	fp := filepath.Join(pwd, "license.json")
 	lc = &LicenseConf{
 		LicenseHost: "isc-license-service:9013",
 		LicenseUrl:  "/api/core/license/valid",
 	}
-	utils.OpenFileAndUnmarshal(fp, lc)
+	plugins.ReadJsonToStruct("license.json", lc)
 
 	//开启定时任务
 	cron := cron.New()
@@ -80,7 +75,7 @@ func Valid(args ...interface{}) error {
 		return nil
 	}
 
-	err := &exception.BusinessException{
+	err := &plugins.BusinessException{
 		StatusCode: 403,
 		Code:       1040403,
 		Message:    "OS未授权，请联系管理员",

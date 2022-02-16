@@ -3,13 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
-	"isc-route-service/pkg/domain"
-	"isc-route-service/pkg/exception"
-	"isc-route-service/utils"
+	plugins "go.mod/common"
 	"net/http"
-	"os"
-	"path/filepath"
 )
 
 var IscAccessTokenKey = "isc-access-token"
@@ -22,23 +19,24 @@ type accessTokeConf struct {
 	Urls []string `json:"urls"`
 }
 
+var redisClient redis.Client
+
 func init() {
 	//这里做初始化操作
-	pwd, _ := os.Getwd()
-	fp := filepath.Join(pwd, "license.json")
-	utils.OpenFileAndUnmarshal(fp, ac)
+	plugins.ReadJsonToStruct("license.json", ac)
+	plugins.InitRedisClient("conf.yaml")
 }
 
 //Valid access token 验证
 func Valid(args ...interface{}) error {
 	req := args[0].(*http.Request)
 	uri := req.URL.Path
-	if !utils.IsInSlice(ac.Urls, uri) {
+	if !plugins.IsInSlice(ac.Urls, uri) {
 		return nil
 	}
 	iscAccessToken := req.Header.Get(IscAccessTokenKey)
 	log.Info().Msgf("公共服务请求,isc-access-token=%s", iscAccessToken)
-	err := &exception.BusinessException{
+	err := &plugins.BusinessException{
 		StatusCode: 403,
 		Code:       1040403,
 		Message:    "应用无权限访问",
@@ -47,7 +45,7 @@ func Valid(args ...interface{}) error {
 		return err
 	} else {
 		//todo 需要连接redis
-		value := domain.RedisClient.Get(context.Background(), fmt.Sprintf("%s%s", GatewayApiServiceAccessTokenRedisKeyPrefix, iscAccessToken)).Val()
+		value := redisClient.Get(context.Background(), fmt.Sprintf("%s%s", GatewayApiServiceAccessTokenRedisKeyPrefix, iscAccessToken)).Val()
 		if value == "" {
 			return err
 		}

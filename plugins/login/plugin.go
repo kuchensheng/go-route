@@ -7,13 +7,9 @@ import (
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/wxnacy/wgo/arrays"
+	plugins "go.mod/common"
 	"io"
-	"isc-route-service/pkg/domain"
-	"isc-route-service/pkg/exception"
-	"isc-route-service/utils"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -45,22 +41,20 @@ type Status struct {
 // init 函数的目的是在插件模块加载的时候自动执行一些我们要做的事情，比如：自动将方法和类型注册到插件平台、输出插件信息等等。
 func init() {
 	log.Info().Msgf("初始化登录鉴权插件")
-	pwd, _ := os.Getwd()
-	fp := filepath.Join(pwd, "login.json")
 	lc = &LoginConf{
 		LoginUrl:   "/api/permission/auth/login",
 		StatusUrl:  "/api/permission/auth/status",
 		LogoutUrl:  "/api/permission/auth/logout",
 		AuthServer: "isc-permission-service:32100",
 	}
-	utils.OpenFileAndUnmarshal(fp, lc)
+	plugins.ReadJsonToStruct("login.json", lc)
 }
 
 //Login 函数则是我们需要在调用方显式查找的symbol
 //export Login
 func Login(args ...interface{}) error {
 	Req := args[0].(*http.Request)
-	p := *args[1].(*domain.RouteInfo)
+	p := args[1].(plugins.RouteInfo)
 	uri := Req.URL.Path
 	if strings.EqualFold(uri, lc.LoginUrl) {
 		//登陆uri不进行校验
@@ -71,7 +65,7 @@ func Login(args ...interface{}) error {
 	} else {
 		//路径匹配
 		for _, p := range p.ExcludeUrl {
-			if utils.Match(uri, p) {
+			if plugins.Match(uri, p) {
 				return nil
 			}
 		}
@@ -109,7 +103,7 @@ func Login(args ...interface{}) error {
 		if response != nil {
 			response.StatusCode = 401
 		}
-		return &exception.BusinessException{
+		return &plugins.BusinessException{
 			StatusCode: 401,
 			Code:       1040401,
 			Message:    "登录鉴权未通过",
