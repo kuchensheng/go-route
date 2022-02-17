@@ -17,40 +17,29 @@ func middleWare() gin.HandlerFunc {
 }
 
 // PrepareMiddleWare 前置拦截处理
-func prepareMiddleWare(c *gin.Context, plugins []*domain.PluginPointer) error {
+func prepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 	//处理器按照order字段已排序
 	for _, pp := range plugins {
 		//变量赋值
 		p := pp.Plugin
-		//reqVar, err := p.Lookup("Req")
-		//if err != nil {
-		//	log.Warn().Msgf("插件[%s]变量[%s]读取异常,%v", pp.Name, "Req", err)
-		//} else {
-		//	*reqVar.(*http.Request) = *c.Request
-		//}
-		//方法寻找
-		//params, err := p.Lookup("Params")
-		//if err != nil {
-		//	log.Warn().Msgf("插件[%s]变量读取异常,%v", pp.Name, "Params", err)
-		//} else {
-		//	*params.(*interface{}) = pp.RouteInfo
-		//}
-
+		log.Info().Msgf("执行插件[%s]方法[%s]", pp.Name, pp.Method)
 		method, err := p.Lookup(pp.Method)
 		if err != nil {
 			log.Warn().Msgf("插件[%s]方法[%s]读取异常,%v", pp.Name, pp.Method, err)
 			continue
 		}
 		//方法执行
-		err = func() error {
-			runtimeError := method.(func(args ...interface{}) error)(c.Request, pp.RouteInfo)
-			if runtimeError != nil && runtimeError.Error() != "" {
-				log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v", pp.Name, pp.Method, err)
-				return runtimeError
-			}
-			return nil
-		}()
-		return err
+		var runtimeError error
+		if pp.Args < 0 {
+			runtimeError = method.(func() error)()
+		} else {
+			runtimeError = method.(func(args ...interface{}) error)(c.Request, pp.RouteInfo)
+		}
+
+		if runtimeError != nil && runtimeError.Error() != "" {
+			log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v", pp.Name, pp.Method, err)
+			return runtimeError
+		}
 	}
 
 	return nil
