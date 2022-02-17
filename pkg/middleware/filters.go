@@ -11,7 +11,7 @@ func MiddleWare() gin.HandlerFunc {
 }
 
 // PrepareMiddleWare 前置拦截处理
-func PrepareMiddleWare(c *gin.Context, plugins []*domain.PluginPointer) error {
+func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 	//处理器按照order字段已排序
 	return prepareMiddleWare(c, plugins)
 }

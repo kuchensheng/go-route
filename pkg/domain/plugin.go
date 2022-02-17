@@ -13,9 +13,9 @@ import (
 
 var Plugins []PluginInfo
 
-var PrePlugins []*PluginPointer
-var PostPlugsins []*PluginPointer
-var OtherPlugins []*PluginPointer
+var PrePlugins []PluginPointer
+var PostPlugsins []PluginPointer
+var OtherPlugins []PluginPointer
 
 //PluginConfigPath 动态链接库定义文件地址
 var PluginConfigPath string
@@ -26,6 +26,7 @@ type PluginInfo struct {
 	Order  int    `json:"order"`
 	Method string `json:"method"`
 	Type   int    `json:"type"`
+	Args   int    `json:"args"`
 }
 
 type PluginPointer struct {
@@ -63,8 +64,8 @@ func InitPlugins() {
 			log.Fatal().Msgf("动态链接库文件解析异常", err)
 		}
 		//todo 需要根据t'y'pe 进行分类处理
-		sort.SliceIsSorted(Plugins, func(i, j int) bool {
-			return Plugins[i].Order < Plugins[j].Order
+		sort.Slice(Plugins, func(i, j int) bool {
+			return Plugins[i].Order > Plugins[j].Order
 		})
 		for _, pluginInfo := range Plugins {
 			log.Info().Msgf("加载动态链接库[%s]", pluginInfo.Name)
@@ -80,12 +81,12 @@ func InitPlugins() {
 				//按照分类放入list，以待执行
 				switch pluginInfo.Type {
 				case PRE:
-					PrePlugins = append(PrePlugins, pp)
+					PrePlugins = append(PrePlugins, *pp)
 				case POST:
-					PostPlugsins = append(PostPlugsins, pp)
+					PostPlugsins = append(PostPlugsins, *pp)
 				default:
 					//
-					OtherPlugins = append(OtherPlugins, pp)
+					OtherPlugins = append(OtherPlugins, *pp)
 				}
 			}
 		}
