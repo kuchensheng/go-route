@@ -42,8 +42,8 @@ func InitFailoverClusterClient(configFileName string) *redis.ClusterClient {
 	return redis.NewFailoverClusterClient(opt)
 }
 
-func ReadYamlToStruct(fileName string, conf any) error {
-	return readFileTo(fileName, conf, func(data []byte, conf any) error {
+func ReadYamlToStruct(fileName string, conf interface{}) error {
+	return readFileTo(fileName, conf, func(data []byte, conf interface{}) error {
 		err := yaml.Unmarshal(data, conf)
 		if err != nil {
 			log.Error().Msgf("yaml转配置[%v]异常\n%v", conf, err)
@@ -53,8 +53,8 @@ func ReadYamlToStruct(fileName string, conf any) error {
 	})
 }
 
-func ReadJsonToStruct(fileName string, conf any) error {
-	return readFileTo(fileName, conf, func(data []byte, conf any) error {
+func ReadJsonToStruct(fileName string, conf interface{}) error {
+	return readFileTo(fileName, conf, func(data []byte, conf interface{}) error {
 		err := json.Unmarshal(data, conf)
 		if err != nil {
 			log.Error().Msgf("json转配置[%v]异常\n%v", conf, err)
@@ -64,7 +64,7 @@ func ReadJsonToStruct(fileName string, conf any) error {
 	})
 }
 
-func readFileTo(fileName string, conf any, handler func(data []byte, conf any) error) error {
+func readFileTo(fileName string, conf interface{}, handler func(data []byte, conf interface{}) error) error {
 	pwd, _ := os.Getwd()
 	fp := filepath.Join(pwd, fileName)
 	log.Info().Msgf("读取文件[%s]", fp)

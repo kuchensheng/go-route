@@ -1,21 +1,21 @@
 [
   {
     "name": "授权校验",
-    "path": "/mnt/d/worksapace/go/isc-route-service/plugins/license/license-1.0.0.so",
+    "path": "license/plugin.so",
     "order": 0,
     "method": "Valid",
     "type" : 0
   },
   {
     "name": "登录校验",
-    "path": "/mnt/d/worksapace/go/isc-route-service/plugins/login/login-1.0.0.so",
+    "path": "login/plugin.so",
     "order": 1,
     "method": "Login",
     "type" : 0
   },
   {
     "name": "AccessToken",
-    "path": "/mnt/d/worksapace/go/isc-route-service/plugins/accesToken/access-token-1.0.0.so",
+    "path": "accesToken/plugin.so",
     "order": 2,
     "method": "Valid",
     "type" : 0

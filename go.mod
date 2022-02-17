@@ -8,10 +8,8 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/gitstliu/go-id-worker v0.0.0-20190725025543-5a5fe074e612
 	github.com/go-redis/redis/v8 v8.11.4
-	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
 	github.com/robfig/cron v1.2.0
 	github.com/rs/zerolog v1.26.1
-	github.com/wxnacy/wgo v1.0.4
 	gopkg.in/yaml.v2 v2.4.0
 )
 

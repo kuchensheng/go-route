@@ -70,7 +70,7 @@ func init() {
 
 //Valid 函数则是我们需要在调用方显式查找的symbol
 //export Valid
-func Valid(args ...interface{}) error {
+func Valid() error {
 	if hasLic {
 		return nil
 	}

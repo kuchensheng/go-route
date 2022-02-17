@@ -9,15 +9,15 @@ import (
 	"isc-route-service/pkg/domain"
 )
 
-// MiddleWare 全局拦截器
-func middleWare() gin.HandlerFunc {
+//MiddleWare 全局拦截器
+func MiddleWare() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Request.Header.Get("t-header")
 	}
 }
 
-// PrepareMiddleWare 前置拦截处理
-func prepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
+//PrepareMiddleWare 前置拦截处理
+func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 	//处理器按照order字段已排序
 	for _, pp := range plugins {
 		//变量赋值
@@ -46,6 +46,6 @@ func prepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 }
 
 // PostMiddleWare 后置拦截处理
-func postMiddleWare() error {
+func PostMiddleWare() error {
 	return nil
 }

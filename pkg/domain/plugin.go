@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"plugin"
+	"runtime"
 	"sort"
 )
 
@@ -45,8 +46,8 @@ const (
 //InitPlugins 加载动态链接库
 func InitPlugins() {
 	log.Info().Msg("加载动态链接库信息")
+	wd, _ := os.Getwd()
 	if PluginConfigPath == "" {
-		wd, _ := os.Getwd()
 		fp := filepath.Join(wd, "resources", "plugins.json")
 		if _, err := os.Stat(fp); os.IsNotExist(err) {
 			log.Fatal().Msg("动态链接库配置文件不存在")
@@ -54,8 +55,9 @@ func InitPlugins() {
 			PluginConfigPath = fp
 		}
 	}
-	handler := func(filepath string) {
-		pluginData, err := ioutil.ReadFile(filepath)
+
+	handler := func(fp string) {
+		pluginData, err := ioutil.ReadFile(fp)
 		if err != nil {
 			log.Fatal().Msgf("动态链接库文件加载异常", err)
 		}
@@ -69,6 +71,12 @@ func InitPlugins() {
 		})
 		for _, pluginInfo := range Plugins {
 			log.Info().Msgf("加载动态链接库[%s]", pluginInfo.Name)
+			pluginPath := pluginInfo.Path
+			if runtime.GOOS != "windows" && PluginConfigPath[0] == os.PathSeparator {
+				//绝对路径
+			} else {
+				pluginPath = filepath.Join(wd, "plugins", pluginPath)
+			}
 			//判断文件是否存在
 			if _, err := os.Stat(pluginInfo.Path); os.IsNotExist(err) {
 				log.Warn().Msgf("动态链接库[%s]文件找不到%v", pluginInfo.Name, err)
