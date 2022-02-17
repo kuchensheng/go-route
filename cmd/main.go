@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"isc-route-service/pkg/domain"
@@ -47,7 +48,7 @@ func main() {
 		log.Info().Msgf("upd服务监听占用端口：%s", *udpPort)
 	}()
 	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
+	router.Use(gin.Logger(), gin.Recovery(), cors.Default())
 	//todo 拦截器
 	router.Any("/*action", proxy.Forward)
 	pr := *port

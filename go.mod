@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/fsnotify/fsnotify v1.5.1
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/gitstliu/go-id-worker v0.0.0-20190725025543-5a5fe074e612
 	github.com/go-redis/redis/v8 v8.11.4
