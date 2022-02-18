@@ -55,8 +55,8 @@ func newDefaultConf() *AppServerConf {
 
 func init() {
 	//初始化ApplicationConf
-	applicationConfig := &AppServerConf{}
-	applicationConfig.readApplicationYaml("")
+	ApplicationConfig = newDefaultConf()
+	ApplicationConfig.readApplicationYaml("")
 	act := ApplicationConfig.Server.Profile.Active
 	if act != "" {
 		ApplicationConfig.readApplicationYaml(act)
@@ -64,7 +64,7 @@ func init() {
 	level := ApplicationConfig.Server.Logging.Level
 	l := zerolog.InfoLevel
 	if level != "" {
-		l1, err := zerolog.ParseLevel(level)
+		l1, err := zerolog.ParseLevel(strings.ToLower(level))
 		if err != nil {
 			log.Warn().Msgf("日志设置异常，将使用默认级别 INFO")
 		} else {
@@ -72,12 +72,12 @@ func init() {
 		}
 		zerolog.SetGlobalLevel(l)
 		zerolog.TimeFieldFormat = time.RFC3339
-		out := zerolog.ConsoleWriter{Out: os.Stdout}
+		out := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000"}
 		out.FormatLevel = func(i interface{}) string {
-			return strings.ToUpper(fmt.Sprintf(" [%s] [%-6s] ", ApplicationConfig.Server.Name, i))
+			return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))
 		}
 
-		log.Logger = log.Logger.Output(out)
+		log.Logger = log.Logger.Output(out).With().Caller().Logger()
 	}
 }
 func ReadProfileYaml() {

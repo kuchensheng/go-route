@@ -80,7 +80,7 @@ func InitPlugins() {
 			pluginInfo.AbsolutePath = pluginPath
 			pp, err := openPlugin(&pluginInfo)
 			if err != nil {
-				log.Error().Msgf("动态链接库[%s]加载异常,%v", pluginInfo.Name, err)
+				log.Error().Stack().Msgf("动态链接库[%s]加载异常,%v", pluginInfo.Name, err)
 			} else {
 				//按照分类放入list，以待执行
 				switch pluginInfo.Type {

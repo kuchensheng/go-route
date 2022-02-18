@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"isc-route-service/pkg/domain"
 	"isc-route-service/pkg/exception"
+	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/middleware"
 
 	tracer2 "isc-route-service/pkg/tracer"
@@ -56,6 +57,11 @@ func getRemoteIp(c *http.Request) string {
 
 //Forward http请求转发
 func Forward(c *gin.Context) {
+	uri := c.Request.RequestURI
+	if uri == "/api/route/refreshRoute" {
+		handler.UpdateRoute(c)
+		return
+	}
 	ch := make(chan error)
 	defer close(ch)
 	//开启tracer

@@ -25,8 +25,7 @@ type RouteInfo struct {
 	SpecialUrl []string `json:"specialUrl"`
 }
 
-func InitRouteInfo() {
-	log.Info().Msg("初始加载路由规则")
+func GetRouteInfoConfigPath() string {
 	cp := ConfigPath
 	log.Info().Msgf("初始加载路由规则配置文件:%s", cp)
 	if cp == "" {
@@ -39,6 +38,11 @@ func InitRouteInfo() {
 			cp = fp
 		}
 	}
+	return cp
+}
+func InitRouteInfo() {
+	log.Info().Msg("初始加载路由规则")
+	cp := GetRouteInfoConfigPath()
 
 	handler := func(filepath string) {
 		log.Info().Msgf("读取文件路径%s", filepath)
