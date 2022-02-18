@@ -10,6 +10,7 @@ import (
 	"isc-route-service/pkg/domain"
 	"isc-route-service/pkg/exception"
 	"isc-route-service/pkg/middleware"
+
 	tracer2 "isc-route-service/pkg/tracer"
 	"isc-route-service/utils"
 	"net"
@@ -83,7 +84,7 @@ func Forward(c *gin.Context) {
 			//这里的逻辑有点怪，每个pre插件都需要获取到routeInfo?先这样处理
 			pre := domain.PrePlugins
 			for _, p := range pre {
-				p.RouteInfo = targetHost
+				p.RouteInfo = *targetHost
 			}
 			//执行前置插件，只要有一个插件抛出异常，则终止服务
 			err = middleware.PrepareMiddleWare(c, pre)

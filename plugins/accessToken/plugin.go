@@ -28,8 +28,8 @@ func init() {
 }
 
 //Valid access token 验证
-func Valid(args ...interface{}) error {
-	req := args[0].(*http.Request)
+//export Valid
+func Valid(req *http.Request, target []byte) error {
 	uri := req.URL.Path
 	if !plugins.IsInSlice(ac.Urls, uri) {
 		return nil

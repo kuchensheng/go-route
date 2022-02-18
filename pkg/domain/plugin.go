@@ -35,7 +35,7 @@ type PluginPointer struct {
 	Plugin *plugin.Plugin
 	Symbol interface{}
 	Type   int
-	*RouteInfo
+	RouteInfo
 }
 
 const (

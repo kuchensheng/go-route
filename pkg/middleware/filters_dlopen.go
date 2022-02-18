@@ -4,6 +4,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"isc-route-service/pkg/domain"
@@ -33,7 +34,8 @@ func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 		if pp.Args < 0 {
 			runtimeError = method.(func() error)()
 		} else {
-			runtimeError = method.(func(args ...interface{}) error)(c.Request, pp.RouteInfo)
+			data, _ := json.Marshal(pp.RouteInfo)
+			runtimeError = method.(func(args ...interface{}) error)(c.Request, data)
 		}
 
 		if runtimeError != nil && runtimeError.Error() != "" {

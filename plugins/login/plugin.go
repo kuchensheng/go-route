@@ -14,7 +14,6 @@ import (
 	"time"
 )
 
-var Req *http.Request
 var Params interface{}
 
 var lc *LoginConf
@@ -52,9 +51,13 @@ func init() {
 
 //Login 函数则是我们需要在调用方显式查找的symbol
 //export Login
-func Login(args ...interface{}) error {
-	Req := args[0].(*http.Request)
-	p := args[1].(plugins.RouteInfo)
+func Login(Req *http.Request, target []byte) error {
+	p := plugins.RouteInfo{}
+	err := json.Unmarshal(target, &p)
+	if err != nil {
+		log.Error().Msgf("传输数据转换为targetRoute异常:%v", err)
+		return err
+	}
 	uri := Req.URL.Path
 	if strings.EqualFold(uri, lc.LoginUrl) {
 		//登陆uri不进行校验
