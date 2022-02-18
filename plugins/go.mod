@@ -1,4 +1,4 @@
-module github.com/isc/plugins
+module github.com/kuchensheng/go-route/plugins
 
 go 1.18
 
