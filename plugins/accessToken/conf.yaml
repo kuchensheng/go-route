@@ -1,0 +1,6 @@
+redis:
+  master: master
+  addrs:
+    - 10.30.30.78:26379
+  password: ZljIsyscore123
+  db: 7

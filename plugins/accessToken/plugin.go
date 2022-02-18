@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
-	plugins "github.com/isc/plugins/common"
 	"github.com/rs/zerolog/log"
+	plugins "isc-route-service/plugins/common"
 
 	"net/http"
 )
@@ -24,12 +24,11 @@ var redisClient redis.Client
 
 func init() {
 	//这里做初始化操作
-	plugins.ReadJsonToStruct("license.json", ac)
-	plugins.InitRedisClient("conf.yaml")
+	plugins.ReadJsonToStruct("accessToken/conf.json", ac)
+	plugins.InitRedisClient("accessToken/conf.yaml")
 }
 
 //Valid access token 验证
-//export Valid
 func Valid(req *http.Request, target []byte) error {
 	uri := req.URL.Path
 	if !plugins.IsInSlice(ac.Urls, uri) {

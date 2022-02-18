@@ -9,7 +9,7 @@ import (
 
 //initPlugins 加载插件
 func openPlugin(pluginInfo *PluginInfo) (*PluginPointer, error) {
-	p, err := plugin.Open(pluginInfo.Path)
+	p, err := plugin.Open(pluginInfo.AbsolutePath)
 	if err != nil {
 		return nil, err
 	}

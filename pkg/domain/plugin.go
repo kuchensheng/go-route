@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"plugin"
-	"runtime"
 	"sort"
 )
 
@@ -22,12 +21,13 @@ var OtherPlugins []PluginPointer
 var PluginConfigPath string
 
 type PluginInfo struct {
-	Name   string `json:"name"`
-	Path   string `json:"path"`
-	Order  int    `json:"order"`
-	Method string `json:"method"`
-	Type   int    `json:"type"`
-	Args   int    `json:"args"`
+	Name         string `json:"name"`
+	Path         string `json:"path"`
+	AbsolutePath string
+	Order        int    `json:"order"`
+	Method       string `json:"method"`
+	Type         int    `json:"type"`
+	Args         int    `json:"args"`
 }
 
 type PluginPointer struct {
@@ -71,17 +71,13 @@ func InitPlugins() {
 		})
 		for _, pluginInfo := range Plugins {
 			log.Info().Msgf("加载动态链接库[%s]", pluginInfo.Name)
-			pluginPath := pluginInfo.Path
-			if runtime.GOOS != "windows" && PluginConfigPath[0] == os.PathSeparator {
-				//绝对路径
-			} else {
-				pluginPath = filepath.Join(wd, "plugins", pluginPath)
-			}
+			pluginPath := filepath.Join(wd, "plugins", pluginInfo.Path)
 			//判断文件是否存在
-			if _, err := os.Stat(pluginInfo.Path); os.IsNotExist(err) {
-				log.Warn().Msgf("动态链接库[%s]文件找不到%v", pluginInfo.Name, err)
+			if _, err := os.Stat(pluginPath); os.IsNotExist(err) {
+				log.Warn().Msgf("动态链接库[%s]文件找不到[%s]%v", pluginInfo.Name, pluginPath, err)
 				continue
 			}
+			pluginInfo.AbsolutePath = pluginPath
 			pp, err := openPlugin(&pluginInfo)
 			if err != nil {
 				log.Error().Msgf("动态链接库[%s]加载异常,%v", pluginInfo.Name, err)

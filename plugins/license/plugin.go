@@ -9,8 +9,9 @@ import (
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog/log"
 	"io"
-	"isc-route-service/common"
+	plugins "isc-route-service/plugins/common"
 	"net/http"
+	"time"
 )
 
 var lc *LicenseConf
@@ -28,7 +29,10 @@ func init() {
 		LicenseHost: "isc-license-service:9013",
 		LicenseUrl:  "/api/core/license/valid",
 	}
-	common.ReadJsonToStruct("license.json", lc)
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+	plugins.ReadJsonToStruct("license/license.json", lc)
 
 	//开启定时任务
 	cron := cron.New()
@@ -37,8 +41,12 @@ func init() {
 		//获取license信息
 		licenseUrl := fmt.Sprintf("http://%s%s", lc.LicenseHost, lc.LicenseUrl)
 		log.Debug().Msgf("license请求地址:%s", licenseUrl)
-		res, err := http.Get(licenseUrl)
-		defer res.Body.Close()
+		res, err := client.Get(licenseUrl)
+		defer func() {
+			if res != nil && res.Body != nil {
+				res.Body.Close()
+			}
+		}()
 		body := res.Body
 		data, err := io.ReadAll(body)
 		if err != nil || res.StatusCode != 200 {
@@ -69,13 +77,12 @@ func init() {
 }
 
 //Valid 函数则是我们需要在调用方显式查找的symbol
-//export Valid
 func Valid(req *http.Request, target []byte) error {
 	if hasLic {
 		return nil
 	}
 
-	err := &common.BusinessException{
+	err := &plugins.BusinessException{
 		StatusCode: 403,
 		Code:       1040403,
 		Message:    "OS未授权，请联系管理员",

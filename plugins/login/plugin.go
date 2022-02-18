@@ -6,9 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"github.com/wxnacy/wgo/arrays"
 	"io"
-	"isc-route-service/common"
+	. "isc-route-service/plugins/common"
 	"net/http"
 	"strings"
 	"time"
@@ -46,29 +45,33 @@ func init() {
 		LogoutUrl:  "/api/permission/auth/logout",
 		AuthServer: "isc-permission-service:32100",
 	}
-	common.ReadJsonToStruct("login.json", lc)
+	ReadJsonToStruct("login/login.json", lc)
+}
+func contains(excludeUrls []string, uri string) bool {
+	for _, item := range excludeUrls {
+		if strings.EqualFold(item, uri) {
+			return true
+		}
+	}
+	return false
 }
 
 //Valid 函数则是我们需要在调用方显式查找的symbol
-//export Valid
 func Valid(Req *http.Request, target []byte) error {
-	p := common.RouteInfo{}
+	p := RouteInfo{}
 	err := json.Unmarshal(target, &p)
 	if err != nil {
 		log.Error().Msgf("传输数据转换为targetRoute异常:%v", err)
 		return err
 	}
 	uri := Req.URL.Path
-	if strings.EqualFold(uri, lc.LoginUrl) {
+	if strings.EqualFold(uri, lc.LoginUrl) || contains(p.ExcludeUrl, uri) {
 		//登陆uri不进行校验
-		return nil
-	} else if arrays.Contains(p.ExcludeUrl, uri) > 0 {
-		//无需登录校验
 		return nil
 	} else {
 		//路径匹配
 		for _, p := range p.ExcludeUrl {
-			if common.Match(uri, p) {
+			if Match(uri, p) {
 				return nil
 			}
 		}
@@ -106,7 +109,7 @@ func Valid(Req *http.Request, target []byte) error {
 		if response != nil {
 			response.StatusCode = 401
 		}
-		return &common.BusinessException{
+		return &BusinessException{
 			StatusCode: 401,
 			Code:       1040401,
 			Message:    "登录鉴权未通过",

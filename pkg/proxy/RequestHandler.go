@@ -78,7 +78,10 @@ func Forward(c *gin.Context) {
 		//2.查看目标主机信息，clientRecovery
 		targetHost, err := getTargetRoute(uri)
 		if err != nil {
-			c.JSON(404, fmt.Sprintf("目标资源寻找错误，%v", err))
+			c.JSON(404, exception.BusinessException{
+				Code:    1040404,
+				Message: "路由规则不存在",
+			})
 			ch <- err
 		} else {
 			//这里的逻辑有点怪，每个pre插件都需要获取到routeInfo?先这样处理

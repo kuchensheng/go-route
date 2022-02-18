@@ -20,5 +20,15 @@
     "excludeUrl": ["/api/core/platform/**"],
     "specialUrl" : [],
     "version" : "20220105115302"
+  },
+  {
+    "path" : "/api/common/**",
+    "serviceId" : "isc-pivot-platform",
+    "url" : "http://10.30.30.78:31300",
+    "createTime" : "2020-12-20 17:22:55",
+    "updateTime" : "2022-01-05 11:38:32",
+    "protocol" : "http",
+    "specialUrl" : [],
+    "version" : "20220105115302"
   }
 ]

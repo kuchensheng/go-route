@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"isc-route-service/pkg/domain"
+	"net/http"
 )
 
 //MiddleWare 全局拦截器
@@ -35,7 +36,7 @@ func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 			runtimeError = method.(func() error)()
 		} else {
 			data, _ := json.Marshal(pp.RouteInfo)
-			runtimeError = method.(func(args ...interface{}) error)(c.Request, data)
+			runtimeError = method.(func(*http.Request, []byte) error)(c.Request, data)
 		}
 
 		if runtimeError != nil && runtimeError.Error() != "" {

@@ -1,15 +1,16 @@
 package domain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -18,43 +19,65 @@ var Profile string
 var ApplicationConfig *AppServerConf
 var RedisClient *redis.Client
 
+type ServerConf struct {
+	Port    int    `yaml:"port"`
+	Name    string `yaml:"name"`
+	Module  string `yaml:"api-module"`
+	Logging struct {
+		Level string `yaml:"level"`
+	} `yaml:"logging"`
+	Profile struct {
+		Active string `yaml:"active"`
+	} `yaml:"profile"`
+}
 type AppServerConf struct {
-	Server struct {
-		Port    int `yaml:"port"`
-		Servlet struct {
-			ContextPath string `yaml:"context-path"`
-		} `yaml:"servlet"`
-		Tcp struct {
-			Port int `yaml:"port"`
-		} `yaml:"tcp"`
-		Udp struct {
-			Port int `yaml:"port"`
-		} `yaml:"udp"`
-		Profile struct {
-			Active string `yaml:"active"`
-		} `yaml:"profile"`
-	} `yaml:"server"`
-	Redis struct {
-		MasterName string   `yaml:"master-name"`
-		Addrs      []string `yaml:"addrs"`
-		Password   string   `yaml:"password"`
-		DB         int      `yaml:"db"`
-	} `yaml:"redis"`
-	Loki struct {
+	Server ServerConf `yaml:"server"`
+	Loki   struct {
 		Host string `yaml:"host"`
 	} `yaml:"loki"`
 }
-type ApplicationConf struct {
-	Conf map[string]interface{}
+
+func newDefaultConf() *AppServerConf {
+	return &AppServerConf{
+		Server: ServerConf{
+			Port:   31000,
+			Name:   "isc-route-service",
+			Module: "route",
+			Logging: struct {
+				Level string `yaml:"level"`
+			}(struct{ Level string }{Level: "INFO"}),
+		},
+		Loki: struct {
+			Host string `yaml:"host"`
+		}{Host: "http://loki-service:3100"},
+	}
 }
 
 func init() {
 	//初始化ApplicationConf
-	ApplicationConfig = &AppServerConf{}
-	ApplicationConfig.readApplicationYaml("")
+	applicationConfig := &AppServerConf{}
+	applicationConfig.readApplicationYaml("")
 	act := ApplicationConfig.Server.Profile.Active
 	if act != "" {
 		ApplicationConfig.readApplicationYaml(act)
+	}
+	level := ApplicationConfig.Server.Logging.Level
+	l := zerolog.InfoLevel
+	if level != "" {
+		l1, err := zerolog.ParseLevel(level)
+		if err != nil {
+			log.Warn().Msgf("日志设置异常，将使用默认级别 INFO")
+		} else {
+			l = l1
+		}
+		zerolog.SetGlobalLevel(l)
+		zerolog.TimeFieldFormat = time.RFC3339
+		out := zerolog.ConsoleWriter{Out: os.Stdout}
+		out.FormatLevel = func(i interface{}) string {
+			return strings.ToUpper(fmt.Sprintf(" [%s] [%-6s] ", ApplicationConfig.Server.Name, i))
+		}
+
+		log.Logger = log.Logger.Output(out)
 	}
 }
 func ReadProfileYaml() {
@@ -82,63 +105,5 @@ func (conf *AppServerConf) readApplicationYaml(act string) {
 		if err != nil {
 			log.Fatal().Msgf("application.yml解析错误", err)
 		}
-		//加载配置
-		addr := ApplicationConfig.Redis.Addrs
-		if len(addr) > 0 {
-			initRedisClient()
-		}
 	}
-}
-
-func initRedisClient() {
-	log.Info().Msgf("初始化redis客户端")
-	masterName := ApplicationConfig.Redis.MasterName
-	//redisValueInterface := ApplicationConfig.Conf["redis"]
-	//redisValue ,ok := redisValueInterface.(interface{})
-	//if ok {
-	//	if redisMap,ok := redisValue.(map[interface{}]interface{});ok {
-	//		if m,ok := redisMap["master"];ok {
-	//			masterName = m.(string)
-	//		}
-	//		if addrs,ok := redisMap["addrs"];ok {
-	//			sa := sentinelAddrs[1:]
-	//			for _,a := range addrs.([]interface{}){
-	//				sa = append(sa,a.(string))
-	//			}
-	//			sentinelAddrs = sa
-	//		}
-	//		if pwd,ok := redisMap["password"];ok {
-	//			password = pwd.(string)
-	//		}
-	//		if db1, ok := redisMap["db"];ok {
-	//			db = db1.(int)
-	//		}
-	//	}
-	//}
-
-	if masterName != "" {
-		log.Info().Msgf("初始化哨兵模式客户端")
-		sf := &redis.FailoverOptions{
-			MasterName:    masterName,
-			SentinelAddrs: ApplicationConfig.Redis.Addrs,
-			Password:      ApplicationConfig.Redis.Password,
-			DB:            ApplicationConfig.Redis.DB,
-			IdleTimeout:   100 * time.Millisecond,
-			MaxRetries:    -1,
-		}
-		RedisClient = redis.NewFailoverClient(sf)
-	} else {
-		log.Info().Msgf("初始化单机模式客户端")
-		RedisClient = redis.NewClient(&redis.Options{
-			Addr:     ApplicationConfig.Redis.Addrs[0],
-			Password: ApplicationConfig.Redis.Password,
-			DB:       ApplicationConfig.Redis.DB,
-		})
-	}
-	ctx := context.Background()
-	err := RedisClient.Ping(ctx).Err()
-	if err != nil {
-		log.Fatal().Msgf("redis初始化失败%v", err)
-	}
-
 }
