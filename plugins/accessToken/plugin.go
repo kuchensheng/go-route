@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	plugins "github.com/isc/plugins/common"
 	"github.com/rs/zerolog/log"
-	plugins "go.mod/common"
+
 	"net/http"
 )
 

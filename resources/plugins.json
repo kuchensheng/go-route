@@ -10,12 +10,12 @@
     "name": "登录校验",
     "path": "login/plugin.so",
     "order": 1,
-    "method": "Login",
+    "method": "Valid",
     "type" : 0
   },
   {
     "name": "AccessToken",
-    "path": "accesToken/plugin.so",
+    "path": "accessToken/plugin.so",
     "order": 2,
     "method": "Valid",
     "type" : 0

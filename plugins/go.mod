@@ -1,4 +1,4 @@
-module go.mod
+module github.com/isc/plugins
 
 go 1.18
 

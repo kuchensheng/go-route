@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/wxnacy/wgo/arrays"
-	plugins "go.mod/common"
 	"io"
+	"isc-route-service/common"
 	"net/http"
 	"strings"
 	"time"
@@ -46,13 +46,13 @@ func init() {
 		LogoutUrl:  "/api/permission/auth/logout",
 		AuthServer: "isc-permission-service:32100",
 	}
-	plugins.ReadJsonToStruct("login.json", lc)
+	common.ReadJsonToStruct("login.json", lc)
 }
 
-//Login 函数则是我们需要在调用方显式查找的symbol
-//export Login
-func Login(Req *http.Request, target []byte) error {
-	p := plugins.RouteInfo{}
+//Valid 函数则是我们需要在调用方显式查找的symbol
+//export Valid
+func Valid(Req *http.Request, target []byte) error {
+	p := common.RouteInfo{}
 	err := json.Unmarshal(target, &p)
 	if err != nil {
 		log.Error().Msgf("传输数据转换为targetRoute异常:%v", err)
@@ -68,7 +68,7 @@ func Login(Req *http.Request, target []byte) error {
 	} else {
 		//路径匹配
 		for _, p := range p.ExcludeUrl {
-			if plugins.Match(uri, p) {
+			if common.Match(uri, p) {
 				return nil
 			}
 		}
@@ -106,7 +106,7 @@ func Login(Req *http.Request, target []byte) error {
 		if response != nil {
 			response.StatusCode = 401
 		}
-		return &plugins.BusinessException{
+		return &common.BusinessException{
 			StatusCode: 401,
 			Code:       1040401,
 			Message:    "登录鉴权未通过",

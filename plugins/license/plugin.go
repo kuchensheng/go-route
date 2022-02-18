@@ -8,8 +8,8 @@ import (
 	"github.com/oliveagle/jsonpath"
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog/log"
-	plugins "go.mod/common"
 	"io"
+	"isc-route-service/common"
 	"net/http"
 )
 
@@ -28,7 +28,7 @@ func init() {
 		LicenseHost: "isc-license-service:9013",
 		LicenseUrl:  "/api/core/license/valid",
 	}
-	plugins.ReadJsonToStruct("license.json", lc)
+	common.ReadJsonToStruct("license.json", lc)
 
 	//开启定时任务
 	cron := cron.New()
@@ -75,7 +75,7 @@ func Valid(req *http.Request, target []byte) error {
 		return nil
 	}
 
-	err := &plugins.BusinessException{
+	err := &common.BusinessException{
 		StatusCode: 403,
 		Code:       1040403,
 		Message:    "OS未授权，请联系管理员",
