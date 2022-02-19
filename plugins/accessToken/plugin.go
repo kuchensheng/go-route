@@ -12,26 +12,29 @@ import (
 
 var IscAccessTokenKey = "isc-access-token"
 var GatewayApiServiceAccessTokenRedisKeyPrefix = "gateway:api:service:access:token:"
-var ac = &accessTokeConf{
-	Urls: []string{"/api/common"},
-}
+var ac = &accessTokeConf{}
 
 type accessTokeConf struct {
-	Urls []string `json:"urls"`
+	AccessToken struct {
+		urls []string `yaml:"urls"`
+	} `yaml:"access-token"`
 }
 
 var redisClient redis.Client
 
 func init() {
 	//这里做初始化操作
-	plugins.ReadJsonToStruct("accessToken/conf.json", ac)
-	plugins.InitRedisClient("accessToken/conf.yaml")
+	plugins.ReadYamlToStruct("accessToken/conf.yml", ac)
+	if len(ac.AccessToken.urls) == 0 {
+		ac.AccessToken.urls = []string{"/api/common"}
+	}
+	redisClient = *plugins.InitRedisClient("accessToken/conf.yml")
 }
 
 //Valid access token 验证
 func Valid(req *http.Request, target []byte) error {
 	uri := req.URL.Path
-	if !plugins.IsInSlice(ac.Urls, uri) {
+	if !plugins.IsInSlice(ac.AccessToken.urls, uri) {
 		return nil
 	}
 	iscAccessToken := req.Header.Get(IscAccessTokenKey)
