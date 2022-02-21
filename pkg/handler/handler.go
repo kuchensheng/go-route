@@ -10,6 +10,7 @@ import (
 	"isc-route-service/pkg/exception"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -67,6 +68,11 @@ func saveOrUpdate(ri domain.RouteInfo) error {
 		log.Error().Stack().Msgf("路由配置信息转换异常:%v", err)
 		return err
 	}
+	sort.Slice(routes, func(i, j int) bool {
+		return routes[i].Id < routes[j].Id
+	})
+	maxId := routes[len(routes)-1].Id
+
 	idx := func() int {
 		for idx, r := range routes {
 			if ri.ServiceId == r.ServiceId {
@@ -77,6 +83,7 @@ func saveOrUpdate(ri domain.RouteInfo) error {
 	}()
 	if idx < 0 {
 		//新增路由信息
+		ri.Id = maxId + 1
 		routes = append(routes, ri)
 	} else {
 		//更新路由信息
