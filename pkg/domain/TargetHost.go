@@ -7,6 +7,7 @@ import (
 	"isc-route-service/watcher"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var RouteInfos []RouteInfo
@@ -23,6 +24,8 @@ type RouteInfo struct {
 	ExcludeUrls []string `json:"excludeUrls"`
 	SpecialUrl  string   `json:"specialUrl"`
 	SpecialUrls []string `json:"specialUrls"`
+	CreateTime  string   `json:"create_time"`
+	UpdateTime  string   `json:"update_time"`
 }
 
 func GetRouteInfoConfigPath() string {
@@ -56,6 +59,20 @@ func InitRouteInfo() {
 		err = json.Unmarshal(fileContent, &RouteInfos)
 		if err != nil {
 			log.Error().Msgf("配置文件读取异常,%v", err)
+		}
+		for idx, item := range RouteInfos {
+			if item.ExcludeUrl != "" {
+				RouteInfos[idx].ExcludeUrls = []string{item.ExcludeUrl}
+				if strings.Contains(item.ExcludeUrl, ";") {
+					RouteInfos[idx].ExcludeUrls = strings.Split(item.ExcludeUrl, ";")
+				}
+			}
+			if item.SpecialUrl != "" {
+				RouteInfos[idx].SpecialUrls = []string{item.SpecialUrl}
+				if strings.Contains(item.SpecialUrl, ";") {
+					RouteInfos[idx].SpecialUrls = strings.Split(item.SpecialUrl, ";")
+				}
+			}
 		}
 	}
 

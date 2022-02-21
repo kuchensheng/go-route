@@ -3,6 +3,7 @@ package proxy
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -176,11 +177,6 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		transport.IdleConnTimeout = 5 * time.Minute
 	}
 	proxy.Transport = transport
-	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
-		//异常处理器
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-	}
 	//traceClient处理,tracer.enter
 	trace, err := startTrace(req)
 	if err != nil {
@@ -189,7 +185,22 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		trace.TraceName = fmt.Sprintf("<%s>%s", req.Method, req.URL.Path)
 		trace.Endpoint = tracer2.CLIENT
 	}
-	proxy.ServeHTTP(w, req)
+	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
+		//异常处理器
+		w.WriteHeader(http.StatusBadRequest)
+		writeContent := exception.BusinessException{
+			Code:    1040502,
+			Message: fmt.Sprintf("远程调用异常:%v", err),
+			Data:    err,
+		}
+		data, _ := json.Marshal(writeContent)
+		w.Write(data)
+		go func() {
+			if err != nil {
+				trace.EndTrace(tracer2.WARNING, err.Error())
+			}
+		}()
+	}
 	proxy.ModifyResponse = func(response *http.Response) error {
 		//todo 代理响应处理，这里可以作为数据脱敏等处理
 		go func() {
@@ -197,11 +208,7 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		}()
 		return middleware.PostMiddleWare()
 	}
-	proxy.ErrorHandler = func(http.ResponseWriter, *http.Request, error) {
-		go func() {
-			trace.EndTrace(tracer2.WARNING, err.Error())
-		}()
-	}
+	proxy.ServeHTTP(w, req)
 	return nil
 }
 
@@ -238,8 +245,16 @@ func getTargetRoute(uri string) (*domain.RouteInfo, error) {
 	// 根据uri解析到目标路由服务
 	for _, route := range domain.RouteInfos {
 		path := route.Path
-		if utils.Match(uri, path) {
-			return &route, nil
+		if strings.Contains(path, ";") {
+			for _, item := range strings.Split(path, ";") {
+				if utils.Match(uri, item) {
+					return &route, nil
+				}
+			}
+		} else {
+			if utils.Match(uri, path) {
+				return &route, nil
+			}
 		}
 	}
 	return nil, fmt.Errorf("路由规则不存在")

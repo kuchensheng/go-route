@@ -6,9 +6,11 @@ type RouteInfo struct {
 	Path        string   `json:"path"`
 	ServiceId   string   `json:"serviceId"`
 	Url         string   `json:"url"`
-	CreateTime  string   `json:"createTime"`
-	UpdateTime  string   `json:"updateTime"`
 	Protocol    string   `json:"protocol"`
+	ExcludeUrl  string   `json:"excludeUrl"`
 	ExcludeUrls []string `json:"excludeUrls"`
+	SpecialUrl  string   `json:"specialUrl"`
 	SpecialUrls []string `json:"specialUrls"`
+	CreateTime  string   `json:"create_time"`
+	UpdateTime  string   `json:"update_time"`
 }

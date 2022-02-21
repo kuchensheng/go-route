@@ -65,12 +65,12 @@ func Valid(Req *http.Request, target []byte) error {
 		return err
 	}
 	uri := Req.URL.Path
-	if strings.EqualFold(uri, lc.LoginUrl) || contains(p.ExcludeUrl, uri) {
+	if strings.EqualFold(uri, lc.LoginUrl) || contains(p.ExcludeUrls, uri) {
 		//登陆uri不进行校验
 		return nil
 	} else {
 		//路径匹配
-		for _, p := range p.ExcludeUrl {
+		for _, p := range p.ExcludeUrls {
 			if Match(uri, p) {
 				return nil
 			}
