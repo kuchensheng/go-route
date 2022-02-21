@@ -13,17 +13,6 @@ import (
 	"strings"
 )
 
-type RouteInfo struct {
-	path        string   `json:"path"`
-	serviceId   string   `json:"serviceId"`
-	url         string   `json:"url"`
-	protocol    string   `json:"protocol"`
-	excludeUrl  string   `json:"excludeUrl"`
-	excludeUrls []string `json:"ExcludeUrls"`
-	specialUrl  string   `json:"specialUrl"`
-	specialUrls []string `json:"specialUrls"`
-}
-
 func UpdateRoute(c *gin.Context) {
 	//获取请求体
 	b := c.Request.Body
@@ -37,23 +26,30 @@ func UpdateRoute(c *gin.Context) {
 		})
 		return
 	}
-	ri := &RouteInfo{}
-	err = json.Unmarshal(data, ri)
+	ri := domain.RouteInfo{}
+	err = json.Unmarshal(data, &ri)
 	if err != nil {
 		log.Warn().Stack().Msgf("请求体不合法,请求内容[%s],异常信息:\n%v", string(data), err)
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
 	checkUrl(ri, c)
+	checkPath(ri, c)
+	if ri.ExcludeUrl != "" {
+		ri.ExcludeUrls = strings.Split(ri.ExcludeUrl, ";")
+	}
+	if ri.SpecialUrl != "" {
+		ri.SpecialUrls = strings.Split(ri.SpecialUrl, ";")
+	}
 	//添加路由信息
-	if saveOrUpdate(*ri) != nil {
+	if saveOrUpdate(ri) != nil {
 		c.JSON(http.StatusInternalServerError, err)
 	}
 }
 
-func saveOrUpdate(ri RouteInfo) error {
+func saveOrUpdate(ri domain.RouteInfo) error {
 	fp := domain.GetRouteInfoConfigPath()
-	file, err := os.OpenFile(fp, os.O_RDWR|os.O_SYNC, 0666)
+	file, err := os.OpenFile(fp, os.O_RDWR|os.O_SYNC, 0644)
 	if err != nil {
 		log.Error().Stack().Msgf("路由配置文件打开异常:%v", err)
 		return err
@@ -63,7 +59,9 @@ func saveOrUpdate(ri RouteInfo) error {
 		log.Error().Stack().Msgf("路由配置信息读取异常:%v", err)
 		return err
 	}
-	var routes []RouteInfo
+	file.Close()
+
+	var routes []domain.RouteInfo
 	err = json.Unmarshal(data, &routes)
 	if err != nil {
 		log.Error().Stack().Msgf("路由配置信息转换异常:%v", err)
@@ -71,7 +69,7 @@ func saveOrUpdate(ri RouteInfo) error {
 	}
 	idx := func() int {
 		for idx, r := range routes {
-			if ri.serviceId == r.serviceId {
+			if ri.ServiceId == r.ServiceId {
 				return idx
 			}
 		}
@@ -90,30 +88,37 @@ func saveOrUpdate(ri RouteInfo) error {
 		log.Error().Stack().Msgf("路由配置信息更新异常:%v", err)
 		return err
 	}
-	_, err = file.WriteString(string(newData))
+
+	file1, err := os.OpenFile(fp, os.O_WRONLY|os.O_TRUNC, 0644)
+	n, _ := file1.Seek(0, 0)
+	_, err = file1.WriteAt(newData, n)
 	if err != nil {
 		log.Error().Stack().Msgf("更新路由配置文件异常%v", err)
 		return err
 	}
+	defer file1.Close()
 	return nil
 }
 
-func checkUrl(ri *RouteInfo, c *gin.Context) {
-	if ri.url == "" || strings.TrimSpace(ri.url) == "" {
+func checkUrl(ri domain.RouteInfo, c *gin.Context) {
+	if ri.Url == "" || strings.TrimSpace(ri.Url) == "" {
 		c.JSON(http.StatusBadRequest, exception.BusinessException{
 			Code:    1040001,
 			Message: "url不能为空",
 		})
 		return
 	}
-	if !(strings.HasPrefix(ri.url, "http") || strings.HasPrefix(ri.url, "ws")) {
+	if !(strings.HasPrefix(ri.Url, "http") || strings.HasPrefix(ri.Url, "ws")) {
 		c.JSON(http.StatusBadRequest, exception.BusinessException{
 			Code:    1040002,
 			Message: "url必须以http/https/ws/wss开头",
 		})
 		return
 	}
-	if !(strings.HasSuffix(ri.url, "/*") || strings.HasSuffix(ri.url, "/**")) {
+}
+
+func checkPath(ri domain.RouteInfo, c *gin.Context) {
+	if !(strings.HasSuffix(ri.Path, "/*") || strings.HasSuffix(ri.Path, "/**")) {
 		c.JSON(http.StatusBadRequest, exception.BusinessException{
 			Code:    1040002,
 			Message: "url必须以/*或/**结尾",

@@ -15,19 +15,18 @@ var ConfigPath string
 type Id int
 type RouteInfo struct {
 	Id
-	Path       string   `json:"path"`
-	ServiceId  string   `json:"serviceId"`
-	Url        string   `json:"url"`
-	CreateTime string   `json:"createTime"`
-	UpdateTime string   `json:"updateTime"`
-	Protocol   string   `json:"protocol"`
-	ExcludeUrl []string `json:"excludeUrl"`
-	SpecialUrl []string `json:"specialUrl"`
+	Path        string   `json:"path"`
+	ServiceId   string   `json:"serviceId"`
+	Url         string   `json:"url"`
+	Protocol    string   `json:"protocol"`
+	ExcludeUrl  string   `json:"excludeUrl"`
+	ExcludeUrls []string `json:"excludeUrls"`
+	SpecialUrl  string   `json:"specialUrl"`
+	SpecialUrls []string `json:"specialUrls"`
 }
 
 func GetRouteInfoConfigPath() string {
 	cp := ConfigPath
-	log.Info().Msgf("初始加载路由规则配置文件:%s", cp)
 	if cp == "" {
 		wd, _ := os.Getwd()
 		fp := filepath.Join(wd, "resources", "routeInfo.json")
@@ -45,18 +44,18 @@ func InitRouteInfo() {
 	cp := GetRouteInfoConfigPath()
 
 	handler := func(filepath string) {
-		log.Info().Msgf("读取文件路径%s", filepath)
+		log.Info().Msgf("读取文件路径%s,并加载路由信息", filepath)
 		file, err := os.OpenFile(filepath, os.O_RDWR, 0666)
 		if err != nil {
-			log.Fatal().Msgf("配置文件读取异常,%v", err)
+			log.Error().Msgf("配置文件读取异常,%v", err)
 		}
 		fileContent, err := io.ReadAll(file)
 		if err != nil {
-			log.Fatal().Msgf("配置文件读取异常,%v", err)
+			log.Error().Msgf("配置文件读取异常,%v", err)
 		}
 		err = json.Unmarshal(fileContent, &RouteInfos)
 		if err != nil {
-			log.Fatal().Msgf("配置文件读取异常,%v", err)
+			log.Error().Msgf("配置文件读取异常,%v", err)
 		}
 	}
 

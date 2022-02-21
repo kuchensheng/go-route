@@ -210,7 +210,7 @@ func isSpecialReq(uri string, targetRoute *domain.RouteInfo) bool {
 	if len(targetRoute.SpecialUrl) == 0 {
 		return false
 	}
-	for _, item := range targetRoute.SpecialUrl {
+	for _, item := range targetRoute.SpecialUrls {
 		paths := strings.Split(item, "/")
 		uriPaths := strings.Split(uri, "/")
 		var match = false
