@@ -190,7 +190,7 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		w.WriteHeader(http.StatusBadRequest)
 		writeContent := exception.BusinessException{
 			Code:    1040502,
-			Message: fmt.Sprintf("远程调用异常:%v", err),
+			Message: fmt.Sprintf("远程调用异常:%v", err.Error()),
 			Data:    err,
 		}
 		data, _ := json.Marshal(writeContent)
