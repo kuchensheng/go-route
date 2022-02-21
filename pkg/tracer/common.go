@@ -1,7 +1,6 @@
 package tracer
 
 import (
-	"encoding/hex"
 	"fmt"
 	idworker "github.com/gitstliu/go-id-worker"
 	"github.com/robfig/cron"
@@ -11,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -104,9 +104,13 @@ func init() {
 	c.Start()
 }
 
+var lock sync.Mutex
+
 //GenerateTraceId 生成唯一traceId值
 func GenerateTraceId() string {
-	buffer := make([]byte, 16)
+	lock.Lock()
+	defer lock.Unlock()
+	var buffer string
 	current := SEQ.Load().(int)
 	next := current
 	if current > MAX {
@@ -115,19 +119,18 @@ func GenerateTraceId() string {
 		next = current + 1
 	}
 	if SEQ.CompareAndSwap(current, next) {
-		buffer = append(buffer, byte(current))
+		buffer += strconv.Itoa(next)
 	}
-	buffer = append(buffer, byte(time.Now().UnixMilli()))
-	buffer = append(buffer, func() []byte {
-		localIp := GetLocalIp()
-		addrInt := ipAddrToInt(localIp)
-		c := strconv.FormatInt(addrInt, 2)
-		return []byte(c)
-	}()...)
-	buffer = append(buffer, byte(os.Getpid()))
-	var result []byte
-	hex.Decode(buffer, result)
-	return string(result)
+	buffer += strconv.FormatInt(time.Now().UnixMilli(), 10)
+	localIp := GetLocalIp()
+	addrInt := ipAddrToInt(localIp)
+	c := strconv.FormatInt(addrInt, 10)
+	buffer += c
+	buffer += strconv.Itoa(os.Getpid())
+	//var result []byte
+
+	//hex.Decode(result, []byte(buffer))
+	return buffer
 }
 func New() (*Tracer, error) {
 	//newId, err := currWorker.NextId()
@@ -174,11 +177,10 @@ func (tracer *Tracer) buildLog() Message {
 	result := &Message{
 		Time: strconv.FormatInt(tracer.endTime, 10) + "000000",
 	}
-	strItem = append(strItem, "0", "default", strconv.FormatInt(tracer.startTime, 13), tracer.tracId,
+	strItem = append(strItem, "0", "default", strconv.FormatInt(tracer.startTime, 10), tracer.tracId,
 		tracer.rpcId, strconv.Itoa(int(tracer.Endpoint)), strconv.Itoa(int(tracer.TraceType)), tracer.TraceName,
 		"isc-route-service", GetLocalIp(), tracer.RemoteIp, strconv.Itoa(int(tracer.status)), strconv.Itoa(tracer.Size),
-		strconv.FormatInt(tracer.endTime-tracer.startTime, 13), tracer.message)
-	strItem = append(strItem, tracer.tracId)
+		strconv.FormatInt(tracer.endTime-tracer.startTime, 10), tracer.message)
 	result.Message = strings.Join(strItem, "|")
 	return *result
 }
