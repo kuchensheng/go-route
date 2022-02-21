@@ -50,13 +50,13 @@ func (client *LokiClient) initEndpoints() {
 	client.endpoints.ready = "/ready"
 }
 
-// Checks if the loki is ready
+//IsReady Checks if the loki is ready
 func (client *LokiClient) IsReady() bool {
 	response, err := http.Get(client.url + client.endpoints.ready)
 	return err == nil && response.StatusCode == 200
 }
 
-// Creates a new loki client
+//CreateClient Creates a new loki client
 // The client runs in a goroutine and sends the data either
 // once it reaches the maxBatch or when it waited for maxWaitTime
 //
@@ -138,7 +138,7 @@ func (client *LokiClient) run() {
 //  ]
 //}
 
-// Adds another stream to be sent with the next batch
+//AddStream Adds another stream to be sent with the next batch
 func (client *LokiClient) AddStream(labels map[string]string, messages []Message) {
 	var vals []jsonValue
 	for i := range messages {
@@ -154,7 +154,7 @@ func (client *LokiClient) AddStream(labels map[string]string, messages []Message
 	client.streams <- &stream
 }
 
-// Encodes the messages and sends them to loki
+//send Encodes the messages and sends them to loki
 func (client *LokiClient) send() error {
 	if len(client.currentMessage.Streams) == 0 {
 		return nil

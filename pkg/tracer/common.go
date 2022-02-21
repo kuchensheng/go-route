@@ -76,7 +76,11 @@ var currWorker = &idworker.IdWorker{}
 var Client *LokiClient
 
 func InitLokiClient() {
-	c, err := CreateClient(domain.ApplicationConfig.Loki.Host, 512, 30*time.Second)
+	host := "http://loki-service:3100"
+	if domain.ApplicationConfig.Loki.Host != "" {
+		host = domain.ApplicationConfig.Loki.Host
+	}
+	c, err := CreateClient(host, 512, 30*time.Second)
 	if err != nil {
 		log.Fatal().Msgf("loki客户端初始化失败\n%v", err)
 	}
