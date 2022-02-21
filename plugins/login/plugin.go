@@ -9,6 +9,7 @@ import (
 	"io"
 	. "isc-route-service/plugins/common"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -27,12 +28,13 @@ type LoginConf struct {
 type Status struct {
 	Code int `json:"code"`
 	Data struct {
-		UserId    string   `json:"userId"`
-		LoginName string   `json:"loginName"`
-		RoleId    []string `json:"roleId"`
-		NickName  string   `json:"nickname"`
-		TenantId  string   `json:"tenantId"`
-		UserType  string   `json:"userType"`
+		UserId     string   `json:"userId"`
+		LoginName  string   `json:"loginName"`
+		RoleId     []string `json:"roleId"`
+		NickName   string   `json:"nickname"`
+		TenantId   string   `json:"tenantId"`
+		UserType   string   `json:"userType"`
+		SuperAdmin bool     `json:"superAdmin"`
 	} `json:"data"`
 }
 
@@ -124,6 +126,8 @@ func Valid(Req *http.Request, target []byte) error {
 	//验证通过后，添加请求头
 	Req.Header.Set("t-head-userId", jsonData.Data.UserId)
 	Req.Header.Set("t-head-userName", jsonData.Data.LoginName)
+	Req.Header.Set("isc-tenant-id", jsonData.Data.TenantId)
+	Req.Header.Set("isc-tenant-admin", strconv.FormatBool(jsonData.Data.SuperAdmin))
 	return nil
 }
 
