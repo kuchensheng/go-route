@@ -64,6 +64,9 @@ func Forward(c *gin.Context) {
 		handler.UpdateRoute(c)
 		return
 	}
+	if uri == "/api/route/system/status" {
+		c.JSON(http.StatusOK, `{}`)
+	}
 	ch := make(chan error)
 	defer close(ch)
 	//开启tracer
