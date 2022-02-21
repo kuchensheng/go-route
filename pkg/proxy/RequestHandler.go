@@ -12,6 +12,7 @@ import (
 	"isc-route-service/pkg/exception"
 	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/middleware"
+	plugins "isc-route-service/plugins/common"
 
 	tracer2 "isc-route-service/pkg/tracer"
 	"isc-route-service/utils"
@@ -100,9 +101,9 @@ func Forward(c *gin.Context) {
 			err = middleware.PrepareMiddleWare(c, pre)
 			if err != nil {
 				//异常判断处理，如果是自定义异常，则需要进行相关转化
-				pe := &exception.BusinessException{}
+				pe := &plugins.BusinessException{}
 				if reflect.TypeOf(err) == reflect.TypeOf(pe) {
-					pe = err.(*exception.BusinessException)
+					pe = err.(*plugins.BusinessException)
 					statusCode := pe.StatusCode
 					c.JSON(statusCode, pe)
 				} else {
