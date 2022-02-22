@@ -13,4 +13,5 @@ type RouteInfo struct {
 	SpecialUrls []string `json:"specialUrls"`
 	CreateTime  string   `json:"create_time"`
 	UpdateTime  string   `json:"update_time"`
+	AppCode     string   `json:"appCode"`
 }

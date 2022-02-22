@@ -35,6 +35,10 @@ type AppServerConf struct {
 	Loki   struct {
 		Host string `yaml:"host"`
 	} `yaml:"loki"`
+	Rc struct {
+		Host      string `yaml:"host"`
+		Relevance string `yaml:"relevance"`
+	}
 }
 
 func newDefaultConf() *AppServerConf {

@@ -15,8 +15,8 @@ func main() {
 	port := flag.Int("port", 31000, "http路由服务启动端口号,默认31000")
 	//tcpPort := flag.Int("tcpPort", 31080, "tcp路由服务启动端口号,默认31080")
 	//udpPort := flag.String("updPort", "31053", "tcp路由服务启动端口号,默认31053")
-	flag.StringVar(&domain.ConfigPath, "conf", "", "路由规则定义文件地址,默认/home/resources/routeInfo.json")
-	flag.StringVar(&domain.PluginConfigPath, "plugins", "", "插件信息定位文件地址，默认/home/resources/plugins.json")
+	flag.StringVar(&domain.ConfigPath, "conf", "", "路由规则定义文件地址,默认/home/isc-route-service/resources/routeInfo.json")
+	flag.StringVar(&domain.PluginConfigPath, "plugins", "", "插件信息定位文件地址，默认/home/isc-route-service/resources/plugins.json")
 	flag.StringVar(&domain.Profile, "profiles", "", "指定的配置文件地址，例如dev,表示加载application-dev.yaml信息")
 
 	flag.Parse()
