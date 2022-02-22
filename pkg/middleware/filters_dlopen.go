@@ -40,7 +40,7 @@ func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 		}
 
 		if runtimeError != nil && runtimeError.Error() != "" {
-			log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v", pp.Name, pp.Method, err)
+			log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v", pp.Name, pp.Method, runtimeError)
 			return runtimeError
 		}
 	}
