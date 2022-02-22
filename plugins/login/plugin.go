@@ -115,7 +115,7 @@ func Valid(Req *http.Request, target []byte) error {
 			StatusCode: 401,
 			Code:       1040401,
 			Message:    "登录鉴权未通过",
-			Data:       jsonData,
+			//Data:       jsonData,
 		}
 	}
 

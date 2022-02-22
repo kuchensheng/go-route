@@ -14,6 +14,7 @@ import (
 	"isc-route-service/pkg/middleware"
 	plugins "isc-route-service/plugins/common"
 
+	ws "github.com/gorilla/websocket"
 	tracer2 "isc-route-service/pkg/tracer"
 	"isc-route-service/utils"
 	"net"
@@ -152,10 +153,25 @@ var transport = &http.Transport{
 	IdleConnTimeout:       time.Duration(30) * time.Second,
 	ResponseHeaderTimeout: 5 * time.Second,
 }
+var upgrader = ws.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
 //hostReverseProxy 真正的转发逻辑，基于httputil.NewSingleHostReverseProxy 进行代理转发
 func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.RouteInfo) error {
+	protocal := "HTTP"
+	//if protocal == "WS" || protocal == "WSS" || req.Header.Get("Upgrade") != "" {
+	//	return hostReverseWebSocket(w,req,target)
+	//}
 	targetUri := target.Url
+	if strings.HasPrefix(targetUri, "ws://") {
+		targetUri = strings.ReplaceAll(targetUri, "ws://", "http://")
+	}
+	if strings.HasPrefix(targetUri, "wss://") {
+		targetUri = strings.ReplaceAll(targetUri, "wss://", "https://")
+	}
 	remote, err := url.Parse(targetUri)
 	if err != nil {
 		msg := fmt.Sprintf("url 解析异常%v", err)
@@ -164,10 +180,14 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		w.Write([]byte(msg))
 		return err
 	}
-	proxy := httputil.NewSingleHostReverseProxy(remote)
 
-	if target.Protocol != "" && strings.ToUpper(target.Protocol) == "HTTPS" {
-		tls, err := getVerTLSConfig("")
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	if target.Protocol != "" {
+		protocal = strings.ToUpper(target.Protocol)
+	}
+	var tls *tls.Config
+	if protocal == "HTTPS" {
+		tls, err = getVerTLSConfig("")
 		if err != nil {
 			msg := fmt.Sprintf("https crt error:%v", err)
 			log.Error().Msg(msg)
