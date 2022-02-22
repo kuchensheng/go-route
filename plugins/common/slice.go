@@ -22,6 +22,9 @@ func Match(src, target string) bool {
 	srcPaths := strings.Split(src, "/")
 	targetPaths := strings.Split(target, "/")
 
+	if len(targetPaths) > len(srcPaths) {
+		return false
+	}
 	for idx, p := range targetPaths {
 		if p == "" {
 			continue

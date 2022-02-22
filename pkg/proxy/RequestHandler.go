@@ -101,7 +101,6 @@ func Forward(c *gin.Context) {
 				pre[idx].RouteInfo = *targetHost
 			}
 			//执行前置插件，只要有一个插件抛出异常，则终止服务
-			log.Info().Msgf("prePlugins=%v", pre)
 			err = middleware.PrepareMiddleWare(c, pre)
 			if err != nil {
 				//异常判断处理，如果是自定义异常，则需要进行相关转化
