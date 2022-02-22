@@ -31,8 +31,8 @@ type PluginInfo struct {
 }
 
 type PluginPointer struct {
-	*PluginInfo
-	Plugin *plugin.Plugin
+	PluginInfo
+	Plugin plugin.Plugin
 	Symbol interface{}
 	Type   int
 	RouteInfo

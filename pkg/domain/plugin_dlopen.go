@@ -18,9 +18,9 @@ func openPlugin(pluginInfo *PluginInfo) (*PluginPointer, error) {
 		return nil, err
 	}
 	pp := &PluginPointer{
-		Plugin: p,
+		Plugin: *p,
 	}
-	pp.PluginInfo = pluginInfo
+	pp.PluginInfo = *pluginInfo
 	pp.Symbol = symbol
 	return pp, nil
 }

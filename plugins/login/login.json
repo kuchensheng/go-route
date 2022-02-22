@@ -2,5 +2,5 @@
   "login_url" : "/api/permission/auth/login",
   "status_url" : "/api/permission/auth/status",
   "logout_url" : "/api/permission/auth/logout",
-  "auth_server" : "isc-permission-service:32100"
+  "auth_server" : "10.30.30.78:32100"
 }
