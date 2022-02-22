@@ -52,6 +52,10 @@ func contains(excludeUrls []string, uri string) bool {
 	for _, item := range excludeUrls {
 		if strings.EqualFold(item, uri) {
 			return true
+		} else {
+			if Match(uri, item) {
+				return true
+			}
 		}
 	}
 	return false
@@ -74,13 +78,6 @@ func Valid(Req *http.Request, target []byte) error {
 	if strings.EqualFold(uri, lc.LoginUrl) || contains(p.ExcludeUrls, uri) {
 		//登陆uri不进行校验
 		return nil
-	} else {
-		//路径匹配
-		for _, p := range p.ExcludeUrls {
-			if Match(uri, p) {
-				return nil
-			}
-		}
 	}
 	var req *http.Request
 	if req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil); err != nil {

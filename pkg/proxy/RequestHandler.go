@@ -97,10 +97,11 @@ func Forward(c *gin.Context) {
 		} else {
 			//这里的逻辑有点怪，每个pre插件都需要获取到routeInfo?先这样处理
 			pre := domain.PrePlugins
-			for _, p := range pre {
-				p.RouteInfo = *targetHost
+			for idx, _ := range pre {
+				pre[idx].RouteInfo = *targetHost
 			}
 			//执行前置插件，只要有一个插件抛出异常，则终止服务
+			log.Info().Msgf("prePlugins=%v", pre)
 			err = middleware.PrepareMiddleWare(c, pre)
 			if err != nil {
 				//异常判断处理，如果是自定义异常，则需要进行相关转化

@@ -24,7 +24,7 @@ func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 	for _, pp := range plugins {
 		//变量赋值
 		p := pp.Plugin
-		//log.Info().Msgf("执行插件[%s]方法[%s]", pp.Name, pp.Method)
+		//log.Info().Msgf("执行插件[%s]方法[%s],pp指针地址：%s", pp.Name, pp.Method,&p)
 		method, err := p.Lookup(pp.Method)
 		if err != nil {
 			log.Warn().Msgf("插件[%s]方法[%s]读取异常,%v", pp.Name, pp.Method, err)
@@ -40,7 +40,7 @@ func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 		}
 
 		if runtimeError != nil && runtimeError.Error() != "" {
-			log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v", pp.Name, pp.Method, runtimeError)
+			log.Warn().Msgf("插件[%s]方法[%s]执行异常,%v\n 请求路径:[%s]", pp.Name, pp.Method, runtimeError, c.Request.URL.String())
 			return runtimeError
 		}
 	}

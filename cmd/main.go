@@ -59,5 +59,8 @@ func main() {
 		pr = p
 	}
 	log.Info().Msgf("服务启动占用端口，%d", pr)
-	router.Run(fmt.Sprintf(":%d", pr))
+	err := router.Run(fmt.Sprintf(":%d", pr))
+	if err != nil {
+		log.Fatal().Msgf("unable to start server due to: %v", err)
+	}
 }
