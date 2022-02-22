@@ -14,7 +14,6 @@ import (
 	"isc-route-service/pkg/middleware"
 	plugins "isc-route-service/plugins/common"
 
-	ws "github.com/gorilla/websocket"
 	tracer2 "isc-route-service/pkg/tracer"
 	"isc-route-service/utils"
 	"net"
@@ -152,11 +151,6 @@ var transport = &http.Transport{
 	MaxIdleConnsPerHost:   512,
 	IdleConnTimeout:       time.Duration(30) * time.Second,
 	ResponseHeaderTimeout: 5 * time.Second,
-}
-var upgrader = ws.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
 }
 
 //hostReverseProxy 真正的转发逻辑，基于httputil.NewSingleHostReverseProxy 进行代理转发
