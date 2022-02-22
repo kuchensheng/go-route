@@ -67,7 +67,7 @@ func InitPlugins() {
 		}
 		//todo 需要根据t'y'pe 进行分类处理
 		sort.Slice(Plugins, func(i, j int) bool {
-			return Plugins[i].Order > Plugins[j].Order
+			return Plugins[i].Order < Plugins[j].Order
 		})
 		for _, pluginInfo := range Plugins {
 			log.Info().Msgf("加载动态链接库[%s]", pluginInfo.Name)

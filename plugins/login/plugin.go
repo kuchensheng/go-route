@@ -3,7 +3,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"io"
@@ -64,7 +63,12 @@ func Valid(Req *http.Request, target []byte) error {
 	err := json.Unmarshal(target, &p)
 	if err != nil {
 		log.Error().Msgf("传输数据转换为targetRoute异常:%v", err)
-		return err
+		return &BusinessException{
+			StatusCode: http.StatusInternalServerError,
+			Code:       1040500,
+			Message:    "传输数据转换为targetRoute异常",
+			Data:       err,
+		}
 	}
 	uri := Req.URL.Path
 	if strings.EqualFold(uri, lc.LoginUrl) || contains(p.ExcludeUrls, uri) {
@@ -78,10 +82,15 @@ func Valid(Req *http.Request, target []byte) error {
 			}
 		}
 	}
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil)
-	if err != nil {
-		log.Error().Msgf("登录鉴权服务请求异常%v", err)
-		return err
+	var req *http.Request
+	if req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil); err != nil {
+		log.Error().Msgf("初始化异常%v", err)
+		return &BusinessException{
+			StatusCode: http.StatusInternalServerError,
+			Code:       1040500,
+			Message:    "登录鉴权服务请求异常,详情见isc-permission-service",
+			Data:       err,
+		}
 	}
 	req.Header = Req.Header
 	for _, cookie := range Req.Cookies() {
@@ -90,16 +99,27 @@ func Valid(Req *http.Request, target []byte) error {
 	client := &http.Client{
 		Timeout: time.Second * 5,
 	}
-	resp, err := client.Do(req)
-	if err != nil {
+	var resp *http.Response
+	if resp, err = client.Do(req); err != nil {
 		log.Error().Msgf("登录鉴权服务请求异常%v", err)
-		return err
+		return &BusinessException{
+			StatusCode: http.StatusBadRequest,
+			Code:       1040400,
+			Message:    "登录鉴权服务请求异常,详情见isc-permission-service",
+			Data:       err,
+		}
 	}
+
 	body := resp.Body
 	defer resp.Body.Close()
 	data, err := io.ReadAll(body)
 	if err != nil {
-		return err
+		return &BusinessException{
+			StatusCode: http.StatusInternalServerError,
+			Code:       1040500,
+			Message:    "请求结果解析异常,isc-permission-service与isc-route-service解析规则不一致,请修改对应插件并升级服务",
+			Data:       err,
+		}
 	}
 	jsonData := &Status{}
 	json.Unmarshal(data, jsonData)
@@ -121,7 +141,11 @@ func Valid(Req *http.Request, target []byte) error {
 
 	c := jsonData.Code
 	if c != 0 && c != 200 {
-		return errors.New("鉴权失败")
+		return &BusinessException{
+			StatusCode: 401,
+			Code:       1040400,
+			Message:    "登录鉴权失败",
+		}
 	}
 	//验证通过后，添加请求头
 	Req.Header.Set("t-head-userId", jsonData.Data.UserId)
