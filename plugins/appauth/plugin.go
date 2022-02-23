@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog/log"
 	. "isc-route-service/plugins/common"
@@ -92,7 +94,8 @@ func Valid(Req *http.Request, target []byte) error {
 	} else {
 		g, found := c.Get(p.AppCode)
 		if !found {
-			resp, err := client.Get(ac.Tenant.Address.Auth + ac.Tenant.Address.Url)
+			reqBody := fmt.Sprintf(`{"appCode":%s,"type":1,"relatedId":%s}`, p.AppCode, tenantId)
+			resp, err := client.Post(ac.Tenant.Address.Auth+ac.Tenant.Address.Url, "application/json", bytes.NewBufferString(reqBody))
 			if err != nil {
 				log.Error().Msgf("请求鉴权服务异常:%v", err)
 			} else {
