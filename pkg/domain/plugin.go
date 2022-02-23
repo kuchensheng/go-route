@@ -48,7 +48,7 @@ func InitPlugins() {
 	log.Info().Msg("加载动态链接库信息")
 	wd, _ := os.Getwd()
 	if PluginConfigPath == "" {
-		fp := filepath.Join(wd, "resources", "plugins.json")
+		fp := filepath.Join(wd, "data", "resources", "plugins.json")
 		if _, err := os.Stat(fp); os.IsNotExist(err) {
 			log.Fatal().Msg("动态链接库配置文件不存在")
 		} else {
@@ -71,7 +71,7 @@ func InitPlugins() {
 		})
 		for _, pluginInfo := range Plugins {
 			log.Info().Msgf("加载动态链接库[%s]", pluginInfo.Name)
-			pluginPath := filepath.Join(wd, "plugins", pluginInfo.Path)
+			pluginPath := filepath.Join(wd, "data", "plugins", pluginInfo.Path)
 			//判断文件是否存在
 			if _, err := os.Stat(pluginPath); os.IsNotExist(err) {
 				log.Warn().Msgf("动态链接库[%s]文件找不到[%s]%v", pluginInfo.Name, pluginPath, err)

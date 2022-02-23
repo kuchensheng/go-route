@@ -36,7 +36,7 @@ func GetRouteInfoConfigPath() string {
 	cp := ConfigPath
 	if cp == "" {
 		wd, _ := os.Getwd()
-		fp := filepath.Join(wd, "resources", "routeInfo.json")
+		fp := filepath.Join(wd, "data", "resources", "routeInfo.json")
 		log.Info().Msgf("路由配置文件:%s", fp)
 		if _, err := os.Stat(fp); os.IsNotExist(err) {
 			log.Fatal().Msg("路由配置文件不存在")
@@ -112,16 +112,14 @@ func InitRouteInfo() {
 	handler(cp)
 	//todo 监听文件变化
 	go func() {
-		wd, _ := os.Getwd()
-		fp := filepath.Join(wd, "data", "routeInfo.json")
-		log.Info().Msgf("路由配置文件:%s", fp)
-		f, err := os.OpenFile(fp, os.O_CREATE, 0666)
+		log.Info().Msgf("路由配置文件:%s", cp)
+		f, err := os.OpenFile(cp, os.O_CREATE, 0666)
 		if err != nil {
 			log.Error().Msgf("文件打开|创建失败:%v，将不会进行文件监听", err)
 			return
 		}
 		f.Close()
-		watcher.AddWatcher(fp, handler)
+		watcher.AddWatcher(cp, handler)
 	}()
 }
 

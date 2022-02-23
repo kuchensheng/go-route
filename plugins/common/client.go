@@ -90,7 +90,7 @@ func ReadJsonToStruct(fileName string, conf interface{}) error {
 
 func readFileTo(fileName string, conf interface{}, handler func(data []byte, conf interface{}) error) error {
 	pwd, _ := os.Getwd()
-	fp := filepath.Join(pwd, "plugins", fileName)
+	fp := filepath.Join(pwd, "data", "plugins", fileName)
 	log.Info().Msgf("读取文件[%s]", fp)
 	data, err := ioutil.ReadFile(fp)
 	if err != nil {
