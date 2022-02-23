@@ -25,8 +25,9 @@ type LoginConf struct {
 }
 
 type Status struct {
-	Code int `json:"code"`
-	Data struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
 		UserId     string   `json:"userId"`
 		LoginName  string   `json:"loginName"`
 		RoleId     []string `json:"roleId"`
@@ -80,6 +81,7 @@ func Valid(Req *http.Request, target []byte) error {
 		return nil
 	}
 	var req *http.Request
+	//todo 这里是否需要使用缓存，有待商榷
 	if req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil); err != nil {
 		log.Error().Msgf("初始化异常%v", err)
 		return &BusinessException{
@@ -119,7 +121,7 @@ func Valid(Req *http.Request, target []byte) error {
 		}
 	}
 	jsonData := &Status{}
-	json.Unmarshal(data, jsonData)
+	err = json.Unmarshal(data, jsonData)
 	if err != nil {
 		return err
 	}
@@ -137,11 +139,16 @@ func Valid(Req *http.Request, target []byte) error {
 	}
 
 	c := jsonData.Code
+	m := jsonData.Message
+	if m == "" {
+		m = "登录鉴权失败"
+	}
 	if c != 0 && c != 200 {
+		//log.Warn().Msgf("permission服务返回结果：code=%d,%v",c,*jsonData)
 		return &BusinessException{
 			StatusCode: 401,
 			Code:       1040400,
-			Message:    "登录鉴权失败",
+			Message:    m,
 		}
 	}
 	//验证通过后，添加请求头

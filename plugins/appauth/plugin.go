@@ -67,6 +67,7 @@ func init() {
 
 //Valid 函数则是我们需要在调用方显式查找的symbol
 func Valid(Req *http.Request, target []byte) error {
+	log.Debug().Msg("应用授权校验")
 	p := RouteInfo{}
 	err := json.Unmarshal(target, &p)
 	if err != nil {
@@ -80,6 +81,7 @@ func Valid(Req *http.Request, target []byte) error {
 	}
 	//超级管理员放过
 	if isSuperAdmin(Req) {
+		log.Debug().Msg("应用授权校验，是超级管理员直接放过")
 		return nil
 	}
 	//从请求头中获取tenantId
@@ -89,10 +91,12 @@ func Valid(Req *http.Request, target []byte) error {
 		Code:       1040403,
 		Message:    "应用无权限访问",
 	}
+	//log.Info().Msgf("租户Id=%s",tenantId)
 	if tenantId == "" {
 		return forbiddenError
 	} else {
 		g, found := c.Get(p.AppCode)
+		log.Debug().Msgf("从缓存中获取结果:%v", g)
 		if !found {
 			reqBody := fmt.Sprintf(`{"appCode":%s,"type":1,"relatedId":%s}`, p.AppCode, tenantId)
 			resp, err := client.Post(ac.Tenant.Address.Auth+ac.Tenant.Address.Url, "application/json", bytes.NewBufferString(reqBody))
@@ -104,12 +108,13 @@ func Valid(Req *http.Request, target []byte) error {
 				if err != nil {
 					log.Error().Msgf("%v", err)
 				} else {
+					log.Info().Msgf("从响应体取到结果:%v", one)
 					granted := one.Data.Granted
 					if !granted {
-						c.Set(p.AppCode, granted, time.Minute*1)
-						return err
+						c.Set(p.AppCode+"_"+tenantId, granted, time.Minute*1)
+						return forbiddenError
 					}
-					c.Set(p.AppCode, granted, time.Minute*5)
+					c.Set(p.AppCode+"_"+tenantId, granted, time.Minute*5)
 				}
 			}
 		} else if g.(bool) {
