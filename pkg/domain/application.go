@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 var Profile string
@@ -101,6 +100,7 @@ var loggerWarn zerolog.Logger
 var loggerError zerolog.Logger
 
 func InitLog() {
+	initLogDir()
 	level := ApplicationConfig.Server.Logging.Level
 	l := zerolog.InfoLevel
 	if level != "" {
@@ -112,8 +112,7 @@ func InitLog() {
 		}
 		zerolog.SetGlobalLevel(l)
 	}
-	zerolog.CallerSkipFrameCount = 3
-	zerolog.TimeFieldFormat = time.RFC3339
+	zerolog.CallerSkipFrameCount = 2
 	out := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000"}
 	out.FormatLevel = func(i interface{}) string {
 		return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))
@@ -151,7 +150,7 @@ func initLoggerFile(logDir string, fileName string) zerolog.Logger {
 	return l
 }
 
-func init() {
+func initLogDir() {
 	// 创建日志目录
 	logDir := filepath.Join(".", "logs")
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {

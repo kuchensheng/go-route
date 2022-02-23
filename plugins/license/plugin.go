@@ -47,6 +47,15 @@ func init() {
 		licenseUrl := fmt.Sprintf("http://%s%s", lc.LicenseHost, lc.LicenseUrl)
 		log.Debug().Msgf("license请求地址:%s", licenseUrl)
 		res, err := client.Get(licenseUrl)
+		if err != nil {
+			log.Warn().Msgf("license服务请求异常:%v", err)
+			if errTimes > 10 {
+				hasLic = false
+			}
+			errTimes += 1
+			return
+		}
+
 		body := res.Body
 		defer func() {
 			if res != nil && body != nil {
