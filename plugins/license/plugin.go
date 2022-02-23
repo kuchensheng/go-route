@@ -5,7 +5,6 @@ import "C"
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/oliveagle/jsonpath"
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog/log"
 	"io"
@@ -20,6 +19,12 @@ var hasLic = true
 type LicenseConf struct {
 	LicenseHost string `json:"host"`
 	LicenseUrl  string `json:"url"`
+}
+
+type LicenseResult struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
 
 // init 函数的目的是在插件模块加载的时候自动执行一些我们要做的事情，比如：自动将方法和类型注册到插件平台、输出插件信息等等。
@@ -42,12 +47,13 @@ func init() {
 		licenseUrl := fmt.Sprintf("http://%s%s", lc.LicenseHost, lc.LicenseUrl)
 		log.Debug().Msgf("license请求地址:%s", licenseUrl)
 		res, err := client.Get(licenseUrl)
+		body := res.Body
 		defer func() {
-			if res != nil && res.Body != nil {
-				res.Body.Close()
+			if res != nil && body != nil {
+				body.Close()
 			}
 		}()
-		body := res.Body
+
 		data, err := io.ReadAll(body)
 		if err != nil || res.StatusCode != 200 {
 			if errTimes > 10 {
@@ -56,19 +62,26 @@ func init() {
 			errTimes += 1
 			log.Warn().Msgf("读取license信息异常\n%v", err)
 		} else {
-			var jsonData interface{}
-			json.Unmarshal(data, &jsonData)
+			jsonData := LicenseResult{}
 			log.Debug().Msgf("响应内容:%v", string(data))
-			code, err := jsonpath.JsonPathLookup(jsonData, "$.code")
+			err = json.Unmarshal(data, &jsonData)
 			if err != nil {
 				log.Warn().Msgf("从响应体中读取code异常\n%v", err)
 				return
 			}
-			c := int(code.(float64))
+
+			c := jsonData.Code
 			if c == 200 || c == 0 {
-				log.Info().Msgf("返回值code=%v,已被授权", code)
+				log.Info().Msgf("返回值code=%v,已被授权", c)
 				errTimes = 0
 				hasLic = true
+			} else {
+				log.Warn().Msgf("授权结果异常：%v", jsonData)
+				if errTimes > 10 {
+					hasLic = false
+				} else {
+					errTimes += 1
+				}
 			}
 		}
 	})
