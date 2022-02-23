@@ -120,7 +120,7 @@ func Valid(Req *http.Request, target []byte) error {
 		} else if g.(bool) {
 			return nil
 		} else {
-			return err
+			return forbiddenError
 		}
 	}
 	return nil
