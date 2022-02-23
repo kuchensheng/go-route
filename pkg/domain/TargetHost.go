@@ -60,12 +60,14 @@ func InitRouteInfo() {
 		if err != nil {
 			log.Error().Msgf("配置文件读取异常,%v", err)
 		}
-		var riMap map[string]RouteInfo
+		//获取已有的路由规则信息
+		riMap := make(map[string]RouteInfo)
 		if len(RouteInfos) > 0 {
 			for _, item := range RouteInfos {
 				riMap[item.ServiceId] = item
 			}
 		}
+		//获取文件中的路由规则信息
 		var ris []RouteInfo
 		err = json.Unmarshal(fileContent, &ris)
 		if err != nil {
@@ -75,7 +77,7 @@ func InitRouteInfo() {
 			//获取appCode
 			serviceIdCodeMap := getServiceIdCodeMap()
 			//合并同类项,以ris为准
-			for idx, item := range ris {
+			for _, item := range ris {
 				var e = item
 				if item.ExcludeUrl != "" {
 					e.ExcludeUrls = []string{item.ExcludeUrl}
@@ -95,14 +97,14 @@ func InitRouteInfo() {
 						e.AppCode = appCode
 					}
 				}
-				if _, ok := riMap[item.ServiceId]; ok {
-					RouteInfos[idx] = e
-				} else {
-					RouteInfos = append(RouteInfos, e)
-					riMap[e.ServiceId] = e
-				}
-
+				riMap[e.ServiceId] = e
 			}
+			//将路由信息再次转换为list
+			var newRouteInfos []RouteInfo
+			for _, v := range riMap {
+				newRouteInfos = append(newRouteInfos, v)
+			}
+			RouteInfos = newRouteInfos
 		}
 
 	}
@@ -145,7 +147,7 @@ func getServiceIdCodeMap() map[string]string {
 	if rh == "" {
 		rh = "http://isc-rc-application-service:34200"
 	}
-	if strings.HasPrefix(rh, "http") {
+	if !strings.HasPrefix(rh, "http") {
 		log.Error().Msgf("rc.host must with http:// or https://")
 		return result
 	}

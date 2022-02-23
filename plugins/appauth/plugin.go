@@ -57,7 +57,7 @@ func init() {
 			},
 		},
 	}
-	if err := ReadJsonToStruct("appauth/conf.json", a); err != nil {
+	if err := ReadYamlToStruct("appauth/conf.yml", a); err != nil {
 		log.Error().Msgf("应用授权初始化失败，将使用默认数据进行初始化，%v", a)
 	}
 	ac = a
