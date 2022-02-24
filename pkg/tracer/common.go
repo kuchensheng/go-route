@@ -96,7 +96,7 @@ func init() {
 	currWorker.InitIdWorker(1500, 1)
 	InitLokiClient()
 	c := cron.New()
-	c.AddFunc("*/1 * * * * ?", func() {
+	c.AddFunc("* * * * * ?", func() {
 		//上传到loki中
 		err := Client.send()
 		if err != nil {

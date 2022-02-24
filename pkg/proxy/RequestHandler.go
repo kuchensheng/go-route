@@ -119,13 +119,6 @@ func Forward(c *gin.Context) {
 				ch <- hostReverseProxy(c.Writer, c.Request, *targetHost)
 			}
 		}
-
-		//转发完成后的一些动作处理，其实这里可以放到proxy.ModifiedResp中去
-		err = middleware.PostMiddleWare()
-		if err != nil {
-			c.JSON(400, err)
-			ch <- err
-		}
 		//c.Next()
 	}()
 	//请求转发后的动作
@@ -216,17 +209,13 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		}
 		data, _ := json.Marshal(writeContent)
 		w.Write(data)
-		go func() {
-			if err != nil {
-				trace.EndTrace(tracer2.WARNING, err.Error())
-			}
-		}()
+		if err != nil {
+			trace.EndTrace(tracer2.WARNING, err.Error())
+		}
 	}
 	proxy.ModifyResponse = func(response *http.Response) error {
 		//todo 代理响应处理，这里可以作为数据脱敏等处理
-		go func() {
-			trace.EndTrace(tracer2.OK, "")
-		}()
+		trace.EndTrace(tracer2.OK, "")
 		return middleware.PostMiddleWare()
 	}
 	proxy.ServeHTTP(w, req)

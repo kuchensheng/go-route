@@ -156,20 +156,34 @@ func (client *LokiClient) AddStream(labels map[string]string, messages []Message
 
 //send Encodes the messages and sends them to loki
 func (client *LokiClient) send() error {
-	if len(client.currentMessage.Streams) == 0 {
+	//log.Info().Msgf("执行发送任务")
+	length := len(client.currentMessage.Streams)
+	if length == 0 {
 		return nil
 	}
-	str, err := json.Marshal(client.currentMessage)
-	if err != nil {
-		return err
-	}
+	ccs := client.currentMessage.Streams
+	repeat := length/64 + 1
+	for idx := 0; idx < repeat; idx++ {
+		start := idx * 64
+		end := (idx + 1) * 64
+		if end > length {
+			end = length
+		}
+		cc := ccs[start:end]
+		ccm := jsonMessage{Streams: cc}
+		str, err := json.Marshal(ccm)
+		if err != nil {
+			return err
+		}
+		response, err := http.Post(client.url+client.endpoints.push, "application/json", bytes.NewReader(str))
+		if response.StatusCode != 204 {
+			return errors.New(response.Status)
+		} else {
+			return err
+		}
 
-	response, err := http.Post(client.url+client.endpoints.push, "application/json", bytes.NewReader(str))
-	if response.StatusCode != 204 {
-		return errors.New(response.Status)
-	} else {
-		return err
 	}
+	return nil
 }
 
 type returnedJSON struct {
@@ -184,7 +198,7 @@ type returnedJSON struct {
 	}
 }
 
-// Queries the server. The queryString is expected to be in the
+//Query Queries the server. The queryString is expected to be in the
 // LogQL format described here:
 // https://github.com/grafana/loki/blob/master/docs/logql.md
 func (client *LokiClient) Query(queryString string) ([]Message, error) {
