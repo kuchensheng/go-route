@@ -184,10 +184,7 @@ func (client *LokiClient) send() error {
 	if err != nil {
 		return err
 	} else if response != nil && response.StatusCode != 204 {
-		body := response.Body
-		data, _ := ioutil.ReadAll(body)
-		log.Error().Msgf("响应内容：%s,报文大小:%d", string(data), len(str))
-		body.Close()
+		log.Warn().Msgf("上传条数[%d],请求头信息：%v", req)
 		return err
 	}
 	return nil
