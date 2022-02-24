@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var Profile string
@@ -113,6 +114,7 @@ func InitLog() {
 		zerolog.SetGlobalLevel(l)
 	}
 	zerolog.CallerSkipFrameCount = 2
+	zerolog.TimeFieldFormat = time.RFC3339
 	out := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000"}
 	out.FormatLevel = func(i interface{}) string {
 		return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))

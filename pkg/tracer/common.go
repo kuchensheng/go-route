@@ -99,10 +99,12 @@ func init() {
 	c.AddFunc("* * * * * ?", func() {
 		//上传到loki中
 		err := Client.send()
+		defer func() {
+			Client.currentMessage.Streams = []jsonStream{}
+		}()
 		if err != nil {
 			log.Warn().Msgf("日志上传异常%v", err)
 		}
-		Client.currentMessage.Streams = nil
 
 	})
 	c.Start()
@@ -172,7 +174,6 @@ func (tracer *Tracer) EndTrace(status TraceStatusEnum, message string) {
 	//扔到loki中去
 	labels := make(map[string]string)
 	labels["app"] = "isc-route-service"
-	labels["appName"] = "路由服务"
 	labels["job"] = "tracelogs"
 	Client.AddStream(labels, []Message{tracer.buildLog()})
 }

@@ -152,11 +152,11 @@ func (client *LokiClient) AddStream(labels map[string]string, messages []Message
 		val[1] = messages[i].Message
 		vals = append(vals, val)
 	}
-	stream := jsonStream{
+	stream := &jsonStream{
 		Stream: labels,
 		Values: vals,
 	}
-	client.streams <- &stream
+	client.streams <- stream
 }
 
 //send Encodes the messages and sends them to loki
@@ -169,7 +169,7 @@ func (client *LokiClient) send() error {
 	defer func() {
 		client.currentMessage.Streams = []jsonStream{}
 	}()
-	str, err := json.Marshal(client.currentMessage.Streams)
+	str, err := json.Marshal(client.currentMessage)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (client *LokiClient) send() error {
 	} else if response != nil && response.StatusCode != 204 {
 		body := response.Body
 		data, _ := ioutil.ReadAll(body)
-		log.Error().Msgf("响应内容：%s", string(data))
+		log.Error().Msgf("响应内容：%s,报文大小:%d", string(data), len(str))
 		body.Close()
 		return err
 	}
