@@ -68,22 +68,16 @@ func Forward(c *gin.Context) {
 	}
 	ch := make(chan error)
 	defer close(ch)
-	traceChan := make(chan *tracer2.Tracer)
-	go func() {
-		//开启tracer
-		tracer, err := startTrace(c.Request)
-		defer close(traceChan)
-		if err != nil {
-			log.Error().Msgf("链路跟踪服务端开启异常,\n%v", err)
-			ch <- err
-			return
-		}
-		//设置当前节点是服务端trace
-		tracer.Endpoint = tracer2.SERVER
-		//获取remoteIP
-		tracer.RemoteIp = c.ClientIP()
-		traceChan <- tracer
-	}()
+	//开启tracer
+	tracer, err := startTrace(c.Request)
+	if err != nil {
+		log.Error().Msgf("链路跟踪服务端开启异常,\n%v", err)
+		ch <- err
+	}
+	//设置当前节点是服务端trace
+	tracer.Endpoint = tracer2.SERVER
+	//获取remoteIP
+	tracer.RemoteIp = c.ClientIP()
 
 	//开启协程转发http请求
 	go func() {
@@ -121,28 +115,25 @@ func Forward(c *gin.Context) {
 		}
 		//c.Next()
 	}()
+	err = <-ch
+	resultChan := make(chan string, 1)
 	//请求转发后的动作
-	err := <-ch
-	log.Debug().Msgf("代理转发完成\n%v", err)
-	//结束跟踪
 	go func(err error) {
-		for {
-			select {
-			case tracer := <-traceChan:
-				if tracer == nil {
-					return
-				}
-				if err != nil {
-					tracer.EndTrace(tracer2.ERROR, err.Error())
-				} else {
-					tracer.EndTrace(tracer2.OK, "")
-				}
-			case <-time.After(100 * time.Millisecond):
-				log.Warn().Msgf("读取traceChan超时")
-				return
+		if tracer != nil {
+			if err != nil {
+				resultChan <- err.Error()
+				tracer.EndTrace(tracer2.ERROR, err.Error())
+			} else {
+				tracer.EndTrace(tracer2.OK, "")
+				resultChan <- "trace执行完毕"
 			}
+
+		} else {
+			resultChan <- "trace为空"
 		}
 	}(err)
+	result := <-resultChan
+	log.Debug().Msgf("代理转发完成\n%v", result)
 
 }
 
@@ -208,7 +199,7 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 	}
 	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
 		//异常处理器
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusOK)
 		writeContent := exception.BusinessException{
 			Code:    1040502,
 			Message: fmt.Sprintf("远程调用异常:%v", err.Error()),
