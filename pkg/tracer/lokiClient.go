@@ -3,7 +3,6 @@ package tracer
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"net/http"
@@ -79,9 +78,10 @@ func CreateClient(url string, maxBatch int, maxWaitTime time.Duration) (*LokiCli
 	//}
 
 	client.wait.Add(1)
-	httpClient = http.Client{
+	hc := http.Client{
 		Timeout: 1 * time.Second,
 	}
+	httpClient = hc
 	go client.run()
 
 	return &client, nil
@@ -178,25 +178,26 @@ func (client *LokiClient) send() error {
 		ccm := jsonMessage{Streams: cc}
 		str, err := json.Marshal(ccm)
 		if err != nil {
-			return err
+			continue
 		}
 		req, err := http.NewRequest("POST", client.url+client.endpoints.push, bytes.NewReader(str))
 		if err != nil {
-			return err
+			continue
 		}
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Connection", "keep-alive")
 		response, err := httpClient.Do(req)
-		//response, err := http.Post(client.url+client.endpoints.push, "application/json", bytes.NewReader(str))
-		if response.StatusCode != 204 {
+		if err != nil {
+			continue
+		} else if response.StatusCode != 204 {
 			body := response.Body
 			data, _ := ioutil.ReadAll(body)
 			log.Error().Msgf("响应内容：%s", string(data))
 			body.Close()
-			return errors.New(response.Status)
+			continue
 		} else {
-			return err
+			continue
 		}
 
 	}

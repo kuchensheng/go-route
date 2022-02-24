@@ -129,6 +129,9 @@ func Forward(c *gin.Context) {
 		for {
 			select {
 			case tracer := <-traceChan:
+				if tracer == nil {
+					return
+				}
 				if err != nil {
 					tracer.EndTrace(tracer2.ERROR, err.Error())
 				} else {
