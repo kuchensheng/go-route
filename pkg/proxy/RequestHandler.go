@@ -123,14 +123,21 @@ func Forward(c *gin.Context) {
 	}()
 	//请求转发后的动作
 	err := <-ch
-	log.Debug().Msgf("代理转发完成%v", err)
+	log.Debug().Msgf("代理转发完成\n%v", err)
 	//结束跟踪
 	go func(err error) {
-		tracer := <-traceChan
-		if err != nil {
-			tracer.EndTrace(tracer2.ERROR, err.Error())
-		} else {
-			tracer.EndTrace(tracer2.OK, "")
+		for {
+			select {
+			case tracer := <-traceChan:
+				if err != nil {
+					tracer.EndTrace(tracer2.ERROR, err.Error())
+				} else {
+					tracer.EndTrace(tracer2.OK, "")
+				}
+			case <-time.After(100 * time.Millisecond):
+				log.Warn().Msgf("读取traceChan超时")
+				return
+			}
 		}
 	}(err)
 
@@ -152,9 +159,6 @@ var transport = &http.Transport{
 //hostReverseProxy 真正的转发逻辑，基于httputil.NewSingleHostReverseProxy 进行代理转发
 func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.RouteInfo) error {
 	protocal := "HTTP"
-	//if protocal == "WS" || protocal == "WSS" || req.Header.Get("Upgrade") != "" {
-	//	return hostReverseWebSocket(w,req,target)
-	//}
 	targetUri := target.Url
 	if strings.HasPrefix(targetUri, "ws://") {
 		targetUri = strings.ReplaceAll(targetUri, "ws://", "http://")
@@ -270,21 +274,31 @@ func getTargetRoute(uri string) (*domain.RouteInfo, error) {
 	return nil, fmt.Errorf("路由规则不存在")
 }
 
+var tlsSkipVerify *tls.Config
+var tlsConfig *tls.Config
+
 //getVerTLSConfig 获取证书信息，CaPath表示证书路径，如果获取不到则表示跳过证书
 func getVerTLSConfig(CaPath string) (*tls.Config, error) {
 	if CaPath == "" {
-		return &tls.Config{
-			InsecureSkipVerify: true,
-		}, nil
+		if tlsSkipVerify == nil {
+			tlsSkipVerify = &tls.Config{
+				InsecureSkipVerify: true,
+			}
+		}
+		return tlsSkipVerify, nil
+	} else {
+		if tlsConfig == nil {
+			caData, err := ioutil.ReadFile(CaPath)
+			if err != nil {
+				log.Error().Msgf("read ca file fail,%v", err)
+				return nil, err
+			}
+			pool := x509.NewCertPool()
+			pool.AppendCertsFromPEM(caData)
+			tlsConfig = &tls.Config{
+				RootCAs: pool,
+			}
+		}
+		return tlsConfig, nil
 	}
-	caData, err := ioutil.ReadFile(CaPath)
-	if err != nil {
-		log.Error().Msgf("read ca file fail,%v", err)
-		return nil, err
-	}
-	pool := x509.NewCertPool()
-	pool.AppendCertsFromPEM(caData)
-	return &tls.Config{
-		RootCAs: pool,
-	}, err
 }
