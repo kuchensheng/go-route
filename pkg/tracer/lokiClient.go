@@ -177,7 +177,7 @@ func (client *LokiClient) send() error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Accept-Encoding", "gzip")
+	//req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "keep-alive")
 	response, err := httpClient.Do(req)
