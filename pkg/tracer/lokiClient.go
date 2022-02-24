@@ -166,6 +166,9 @@ func (client *LokiClient) send() error {
 	if length == 0 {
 		return nil
 	}
+	defer func() {
+		client.currentMessage.Streams = []jsonStream{}
+	}()
 	str, err := json.Marshal(client.currentMessage.Streams)
 	if err != nil {
 		return err
