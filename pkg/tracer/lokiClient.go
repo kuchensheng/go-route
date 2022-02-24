@@ -166,40 +166,26 @@ func (client *LokiClient) send() error {
 	if length == 0 {
 		return nil
 	}
-	ccs := client.currentMessage.Streams
-	repeat := length/64 + 1
-	for idx := 0; idx < repeat; idx++ {
-		start := idx * 64
-		end := (idx + 1) * 64
-		if end > length {
-			end = length
-		}
-		cc := ccs[start:end]
-		ccm := jsonMessage{Streams: cc}
-		str, err := json.Marshal(ccm)
-		if err != nil {
-			continue
-		}
-		req, err := http.NewRequest("POST", client.url+client.endpoints.push, bytes.NewReader(str))
-		if err != nil {
-			continue
-		}
-		req.Header.Set("Accept-Encoding", "gzip")
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Connection", "keep-alive")
-		response, err := httpClient.Do(req)
-		if err != nil {
-			continue
-		} else if response.StatusCode != 204 {
-			body := response.Body
-			data, _ := ioutil.ReadAll(body)
-			log.Error().Msgf("响应内容：%s", string(data))
-			body.Close()
-			continue
-		} else {
-			continue
-		}
-
+	str, err := json.Marshal(client.currentMessage.Streams)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", client.url+client.endpoints.push, bytes.NewReader(str))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	response, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	} else if response != nil && response.StatusCode != 204 {
+		body := response.Body
+		data, _ := ioutil.ReadAll(body)
+		log.Error().Msgf("响应内容：%s", string(data))
+		body.Close()
+		return err
 	}
 	return nil
 }
