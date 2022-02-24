@@ -173,7 +173,7 @@ func (tracer *Tracer) EndTrace(status TraceStatusEnum, message string) {
 	labels := make(map[string]string)
 	labels["app"] = "isc-route-service"
 	labels["appName"] = "路由服务"
-	labels["time"] = strconv.FormatInt(tracer.endTime, 13)
+	labels["job"] = "tracelogs"
 	Client.AddStream(labels, []Message{tracer.buildLog()})
 }
 func (tracer *Tracer) buildLog() Message {
