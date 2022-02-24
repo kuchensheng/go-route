@@ -9,9 +9,8 @@ import (
 	"path/filepath"
 	"plugin"
 	"sort"
+	"strings"
 )
-
-var Plugins []PluginInfo
 
 var PrePlugins []PluginPointer
 var PostPlugsins []PluginPointer
@@ -28,6 +27,7 @@ type PluginInfo struct {
 	Method       string `json:"method"`
 	Type         int    `json:"type"`
 	Args         int    `json:"args"`
+	Version      string `json:"version"`
 }
 
 type PluginPointer struct {
@@ -43,8 +43,11 @@ const (
 	POST        //1
 )
 
+var alreadyExistsPlugins map[string]PluginInfo
+
 //InitPlugins 加载动态链接库
 func InitPlugins() {
+	alreadyExistsPlugins = make(map[string]PluginInfo)
 	log.Info().Msg("加载动态链接库信息")
 	wd, _ := os.Getwd()
 	if PluginConfigPath == "" {
@@ -57,19 +60,33 @@ func InitPlugins() {
 	}
 
 	handler := func(fp string) {
+		var Plugins []PluginInfo
 		pluginData, err := ioutil.ReadFile(fp)
 		if err != nil {
-			log.Fatal().Msgf("动态链接库文件加载异常", err)
+			log.Error().Msgf("动态链接库文件加载异常", err)
+			return
 		}
 		err = json.Unmarshal(pluginData, &Plugins)
 		if err != nil {
-			log.Fatal().Msgf("动态链接库文件解析异常", err)
+			log.Error().Msgf("动态链接库文件解析异常", err)
+			return
 		}
 		//todo 需要根据t'y'pe 进行分类处理
 		sort.Slice(Plugins, func(i, j int) bool {
 			return Plugins[i].Order < Plugins[j].Order
 		})
-		for _, pluginInfo := range Plugins {
+		newPlugin := make(map[string]PluginInfo)
+		for _, item := range Plugins {
+			newPlugin[strings.Join([]string{item.Name, item.Version}, "_")] = item
+		}
+		var newPrePlugin []PluginPointer
+		var newPostPlugin []PluginPointer
+		var newOtherPlugin []PluginPointer
+		for key, pluginInfo := range newPlugin {
+			if _, ok := alreadyExistsPlugins[key]; ok {
+				//已存在的插件，不再重新加载
+				continue
+			}
 			log.Info().Msgf("加载动态链接库[%s]", pluginInfo.Name)
 			pluginPath := filepath.Join(wd, "data", "plugins", pluginInfo.Path)
 			//判断文件是否存在
@@ -81,21 +98,27 @@ func InitPlugins() {
 			pp, err := openPlugin(&pluginInfo)
 			if err != nil {
 				log.Error().Stack().Msgf("动态链接库[%s]加载异常,%v", pluginInfo.Name, err)
+				continue
 			} else {
 				//按照分类放入list，以待执行
 				switch pluginInfo.Type {
 				case PRE:
-					PrePlugins = append(PrePlugins, *pp)
+					newPrePlugin = append(newPrePlugin, *pp)
 				case POST:
-					PostPlugsins = append(PostPlugsins, *pp)
+					newPostPlugin = append(newPostPlugin, *pp)
 				default:
-					//
-					OtherPlugins = append(OtherPlugins, *pp)
+					newOtherPlugin = append(newOtherPlugin, *pp)
 				}
+				alreadyExistsPlugins[key] = pluginInfo
 			}
 		}
+		PrePlugins = newPrePlugin
+		PostPlugsins = newPostPlugin
+		OtherPlugins = newOtherPlugin
+		alreadyExistsPlugins = newPlugin
 	}
 	handler(PluginConfigPath)
+
 	//todo 监听动态链接库配置文件/数据变化
 	go func() {
 		watcher.AddWatcher("./data/resources/plugins.json", handler)
