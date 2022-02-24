@@ -12,9 +12,8 @@ import (
 	"isc-route-service/pkg/exception"
 	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/middleware"
-	plugins "isc-route-service/plugins/common"
-
 	tracer2 "isc-route-service/pkg/tracer"
+	plugins "isc-route-service/plugins/common"
 	"isc-route-service/utils"
 	"net"
 	"net/http"
@@ -69,24 +68,27 @@ func Forward(c *gin.Context) {
 	}
 	ch := make(chan error)
 	defer close(ch)
-	//开启tracer
-	tracer, err := startTrace(c.Request)
-	if err != nil {
-		log.Error().Msgf("链路跟踪服务端开启异常,\n%v", err)
-		ch <- err
-		return
-	}
-	//设置当前节点是服务端trace
-	tracer.Endpoint = tracer2.SERVER
-	//获取remoteIP
-	tracer.RemoteIp = c.Request.Host
+	traceChan := make(chan *tracer2.Tracer)
+	go func() {
+		//开启tracer
+		tracer, err := startTrace(c.Request)
+		defer close(traceChan)
+		if err != nil {
+			log.Error().Msgf("链路跟踪服务端开启异常,\n%v", err)
+			ch <- err
+			return
+		}
+		//设置当前节点是服务端trace
+		tracer.Endpoint = tracer2.SERVER
+		//获取remoteIP
+		tracer.RemoteIp = c.ClientIP()
+		traceChan <- tracer
+	}()
 
 	//开启协程转发http请求
 	go func() {
 		//请求转发前的动作
-		//1.获取当前uri
-		uri := c.Request.RequestURI
-		//2.查看目标主机信息，clientRecovery
+		//1.查看目标主机信息，clientRecovery
 		targetHost, err := getTargetRoute(uri)
 		if err != nil {
 			c.JSON(404, exception.BusinessException{
@@ -127,10 +129,11 @@ func Forward(c *gin.Context) {
 		//c.Next()
 	}()
 	//请求转发后的动作
-	err = <-ch
+	err := <-ch
 	log.Debug().Msgf("代理转发完成%v", err)
 	//结束跟踪
 	go func(err error) {
+		tracer := <-traceChan
 		if err != nil {
 			tracer.EndTrace(tracer2.ERROR, err.Error())
 		} else {
