@@ -62,6 +62,32 @@ func contains(excludeUrls []string, uri string) bool {
 	return false
 }
 
+var req *http.Request
+var client *http.Client
+
+func initHttpRequest() error {
+	if req == nil {
+		if r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil); err != nil {
+			log.Error().Msgf("初始化异常%v", err)
+			return &BusinessException{
+				StatusCode: http.StatusInternalServerError,
+				Code:       1040500,
+				Message:    "登录鉴权服务请求异常,详情见isc-permission-service",
+				Data:       err,
+			}
+		} else {
+			req = r
+		}
+	}
+	if client == nil {
+		c := &http.Client{
+			Timeout: time.Second * 5,
+		}
+		client = c
+	}
+	return nil
+}
+
 //Valid 函数则是我们需要在调用方显式查找的symbol
 func Valid(Req *http.Request, target []byte) error {
 	p := RouteInfo{}
@@ -82,21 +108,14 @@ func Valid(Req *http.Request, target []byte) error {
 	}
 	var req *http.Request
 	//todo 这里是否需要使用缓存，有待商榷
-	if req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil); err != nil {
-		log.Error().Msgf("初始化异常%v", err)
-		return &BusinessException{
-			StatusCode: http.StatusInternalServerError,
-			Code:       1040500,
-			Message:    "登录鉴权服务请求异常,详情见isc-permission-service",
-			Data:       err,
-		}
+	err = initHttpRequest()
+	if err != nil {
+		return err
 	}
 	req.Header = Req.Header
+	req.Header.Set("Connection", "keep-alive")
 	for _, cookie := range Req.Cookies() {
 		req.AddCookie(cookie)
-	}
-	client := &http.Client{
-		Timeout: time.Second * 5,
 	}
 	var resp *http.Response
 	if resp, err = client.Do(req); err != nil {
@@ -110,7 +129,11 @@ func Valid(Req *http.Request, target []byte) error {
 	}
 
 	body := resp.Body
-	defer resp.Body.Close()
+	defer func() {
+		if body != nil {
+			body.Close()
+		}
+	}()
 	data, err := io.ReadAll(body)
 	if err != nil {
 		return &BusinessException{
@@ -123,7 +146,12 @@ func Valid(Req *http.Request, target []byte) error {
 	jsonData := &Status{}
 	err = json.Unmarshal(data, jsonData)
 	if err != nil {
-		return err
+		return &BusinessException{
+			StatusCode: http.StatusInternalServerError,
+			Code:       1040500,
+			Message:    "请求结果解析异常,isc-permission-service与isc-route-service解析规则不一致,请修改对应插件并升级服务",
+			Data:       err,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		response := Req.Response
@@ -144,7 +172,6 @@ func Valid(Req *http.Request, target []byte) error {
 		m = "登录鉴权失败"
 	}
 	if c != 0 && c != 200 {
-		//log.Warn().Msgf("permission服务返回结果：code=%d,%v",c,*jsonData)
 		return &BusinessException{
 			StatusCode: 401,
 			Code:       1040400,
