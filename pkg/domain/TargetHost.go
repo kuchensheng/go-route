@@ -112,14 +112,14 @@ func InitRouteInfo() {
 	handler(cp)
 	//todo 监听文件变化
 	go func() {
-		log.Info().Msgf("路由配置文件:%s", cp)
-		f, err := os.OpenFile(cp, os.O_CREATE, 0666)
-		if err != nil {
-			log.Error().Msgf("文件打开|创建失败:%v，将不会进行文件监听", err)
-			return
-		}
-		f.Close()
-		watcher.AddWatcher(cp, handler)
+		//log.Info().Msgf("路由配置文件:%s", cp)
+		//f, err := os.OpenFile(cp, os.O_CREATE, 0666)
+		//if err != nil {
+		//	log.Error().Msgf("文件打开|创建失败:%v，将不会进行文件监听", err)
+		//	return
+		//}
+		//f.Close()
+		watcher.AddWatcher("./data/resources/routeInfo.json", handler)
 	}()
 }
 

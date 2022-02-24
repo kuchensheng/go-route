@@ -98,6 +98,6 @@ func InitPlugins() {
 	handler(PluginConfigPath)
 	//todo 监听动态链接库配置文件/数据变化
 	go func() {
-		watcher.AddWatcher(PluginConfigPath, handler)
+		watcher.AddWatcher("./data/resources/plugins.json", handler)
 	}()
 }
