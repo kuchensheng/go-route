@@ -181,8 +181,12 @@ func Valid(Req *http.Request, target []byte) error {
 	//验证通过后，添加请求头
 	Req.Header.Set("t-head-userId", jsonData.Data.UserId)
 	Req.Header.Set("t-head-userName", jsonData.Data.LoginName)
-	Req.Header.Set("isc-tenant-id", jsonData.Data.TenantId)
+
+	if !jsonData.Data.SuperAdmin {
+		Req.Header.Set("isc-tenant-id", jsonData.Data.TenantId)
+	}
 	Req.Header.Set("isc-tenant-admin", strconv.FormatBool(jsonData.Data.SuperAdmin))
+
 	return nil
 }
 
