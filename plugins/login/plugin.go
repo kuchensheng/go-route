@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	cache2 "github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog/log"
 	"io"
 	. "isc-route-service/plugins/common"
@@ -48,6 +49,7 @@ func init() {
 		AuthServer: "isc-permission-service:32100",
 	}
 	ReadJsonToStruct("login/login.json", lc)
+	cache = cache2.New(5*time.Second, 5*time.Second)
 }
 func contains(excludeUrls []string, uri string) bool {
 	for _, item := range excludeUrls {
@@ -64,6 +66,7 @@ func contains(excludeUrls []string, uri string) bool {
 
 var req *http.Request
 var client *http.Client
+var cache *cache2.Cache
 
 func initHttpRequest() error {
 	if req == nil {
@@ -104,6 +107,18 @@ func Valid(Req *http.Request, target []byte) error {
 	uri := Req.URL.Path
 	if strings.EqualFold(uri, lc.LoginUrl) || contains(p.ExcludeUrls, uri) {
 		//登陆uri不进行校验
+		return nil
+	}
+	token := Req.Header.Get("token")
+	if token == "" {
+		return &BusinessException{
+			StatusCode: 401,
+			Code:       1040401,
+			Message:    "登录鉴权未通过,token不能为空",
+			//Data:       jsonData,
+		}
+	}
+	if _, ok := cache.Get(token); ok {
 		return nil
 	}
 	var req *http.Request
@@ -178,6 +193,7 @@ func Valid(Req *http.Request, target []byte) error {
 			Message:    m,
 		}
 	}
+	cache.Set(token, *jsonData, 10*time.Millisecond)
 	//验证通过后，添加请求头
 	Req.Header.Set("t-head-userId", jsonData.Data.UserId)
 	Req.Header.Set("t-head-userName", jsonData.Data.LoginName)
