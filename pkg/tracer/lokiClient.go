@@ -2,10 +2,14 @@ package tracer
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/rs/zerolog/log"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptrace"
 	"sync"
 	"time"
 )
@@ -79,7 +83,7 @@ func CreateClient(url string, maxBatch int, maxWaitTime time.Duration) (*LokiCli
 
 	client.wait.Add(1)
 	hc := http.Client{
-		Timeout: 1 * time.Second,
+		Timeout: 2 * time.Second,
 	}
 	httpClient = hc
 	go client.run()
@@ -159,6 +163,8 @@ func (client *LokiClient) AddStream(labels map[string]string, messages []Message
 	client.streams <- stream
 }
 
+var traceCtx = httptrace.WithClientTrace(context.Background(), &httptrace.ClientTrace{})
+
 //send Encodes the messages and sends them to loki
 func (client *LokiClient) send() error {
 	//log.Info().Msgf("执行发送任务")
@@ -173,18 +179,22 @@ func (client *LokiClient) send() error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", client.url+client.endpoints.push, bytes.NewReader(str))
+	req, err := http.NewRequestWithContext(traceCtx, "POST", client.url+client.endpoints.push, bytes.NewReader(str))
 	if err != nil {
 		return err
 	}
-	//req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(str)))
 	response, err := httpClient.Do(req)
+	defer func(Body io.ReadCloser) {
+		Body.Close()
+	}(response.Body)
 	if err != nil {
 		return err
 	} else if response != nil && response.StatusCode != 204 {
-		log.Warn().Msgf("上传条数[%d],请求头信息：%v", req)
+		log.Debug().Msgf("上传条数[%d]", length)
 		return err
 	}
 	return nil

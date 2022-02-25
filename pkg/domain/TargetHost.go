@@ -1,15 +1,22 @@
 package domain
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"io"
+	"io/ioutil"
 	"isc-route-service/watcher"
+	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -45,6 +52,153 @@ func GetRouteInfoConfigPath() string {
 		}
 	}
 	return cp
+}
+
+var tlsSkipVerify *tls.Config
+var tlsConfig *tls.Config
+
+//getVerTLSConfig 获取证书信息，CaPath表示证书路径，如果获取不到则表示跳过证书
+func getVerTLSConfig(CaPath string) (*tls.Config, error) {
+	if CaPath == "" {
+		if tlsSkipVerify == nil {
+			tlsSkipVerify = &tls.Config{
+				InsecureSkipVerify: true,
+			}
+		}
+		return tlsSkipVerify, nil
+	} else {
+		if tlsConfig == nil {
+			caData, err := ioutil.ReadFile(CaPath)
+			if err != nil {
+				log.Error().Msgf("read ca file fail,%v", err)
+				return nil, err
+			}
+			pool := x509.NewCertPool()
+			pool.AppendCertsFromPEM(caData)
+			tlsConfig = &tls.Config{
+				RootCAs: pool,
+			}
+		}
+		return tlsConfig, nil
+	}
+}
+
+//isSpecialReq 判断是否符合特殊处理，若符合则设置超时时间为5分钟
+func (target *RouteInfo) isSpecialReq(uri string) bool {
+	if len(target.SpecialUrl) == 0 {
+		return false
+	}
+	for _, item := range target.SpecialUrls {
+		paths := strings.Split(item, "/")
+		uriPaths := strings.Split(uri, "/")
+		var match = false
+	inner:
+		for idx, p := range paths {
+			if p == "" {
+				continue
+			}
+			if strings.Contains(p, "*") {
+				match = true
+				break inner
+			}
+			if p != uriPaths[idx] {
+				match = false
+				break inner
+			}
+		}
+		return match
+	}
+	return false
+}
+
+//var proxyPool = make(map[string][]*httputil.ReverseProxy)
+var proxyPool sync.Map
+
+func (target *RouteInfo) GetProxy(w http.ResponseWriter, req *http.Request) (*httputil.ReverseProxy, error) {
+	targetUri := target.getTargetUri()
+	remote, err := url.Parse(targetUri)
+	if err != nil {
+		msg := fmt.Sprintf("url 解析异常%v", err)
+		log.Error().Msgf(msg)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(msg))
+		return nil, err
+	}
+	//
+	//var proxy *httputil.ReverseProxy
+	//ps,ok := proxyPool.Load(targetUri)
+	//if !ok || len(ps.([]*httputil.ReverseProxy)) == 0 {
+	//	proxy,err = target.createProxy(w,req,remote)
+	//	if err == nil {
+	//		target.AddProxy(proxy)
+	//	}
+	//} else {
+	//	proxies := ps.([]*httputil.ReverseProxy)
+	//	proxy = proxies[0]
+	//	proxyPool.Store(targetUri,proxies[1:])
+	//}
+	//proxy,err = target.createProxy(w,req,remote)
+	return target.createProxy(w, req, remote)
+}
+func (target *RouteInfo) getTargetUri() string {
+	targetUri := target.Url
+	if strings.HasPrefix(targetUri, "ws://") {
+		targetUri = strings.ReplaceAll(targetUri, "ws://", "http://")
+	}
+	if strings.HasPrefix(targetUri, "wss://") {
+		targetUri = strings.ReplaceAll(targetUri, "wss://", "https://")
+	}
+	return targetUri
+}
+func (target *RouteInfo) AddProxy(proxy *httputil.ReverseProxy) {
+	targetUri := target.getTargetUri()
+	var ps []*httputil.ReverseProxy
+	proxies, ok := proxyPool.Load(targetUri)
+	if !ok || len(proxies.([]*httputil.ReverseProxy)) == 0 {
+		ps = append(ps, proxy)
+	} else {
+		ps = append(proxies.([]*httputil.ReverseProxy), proxy)
+	}
+	proxyPool.Store(targetUri, ps)
+}
+
+//这里用于创建http client，默认5s超时，超时处理暂未实现
+var transport = &http.Transport{
+	Proxy: http.ProxyFromEnvironment,
+	DialContext: (&net.Dialer{
+		Timeout:   5 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}).DialContext,
+	MaxIdleConns:          1024,
+	MaxIdleConnsPerHost:   512,
+	IdleConnTimeout:       time.Duration(5) * time.Second,
+	ResponseHeaderTimeout: 5 * time.Second,
+}
+
+func (target *RouteInfo) createProxy(w http.ResponseWriter, req *http.Request, remote *url.URL) (*httputil.ReverseProxy, error) {
+	protocal := "HTTP"
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	if target.Protocol != "" {
+		protocal = strings.ToUpper(target.Protocol)
+	}
+	//var tls *tls.Config
+	if protocal == "HTTPS" {
+		tls, err := getVerTLSConfig("")
+		if err != nil {
+			msg := fmt.Sprintf("https crt error:%v", err)
+			log.Error().Msg(msg)
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte(msg))
+			return nil, err
+		}
+		transport.TLSClientConfig = tls
+	}
+	if target.isSpecialReq(req.URL.Path) {
+		transport.IdleConnTimeout = 5 * time.Minute
+	}
+	proxy.Transport = transport
+
+	return proxy, nil
 }
 func InitRouteInfo() {
 	log.Info().Msg("初始加载路由规则")
@@ -112,13 +266,6 @@ func InitRouteInfo() {
 	handler(cp)
 	//todo 监听文件变化
 	go func() {
-		//log.Info().Msgf("路由配置文件:%s", cp)
-		//f, err := os.OpenFile(cp, os.O_CREATE, 0666)
-		//if err != nil {
-		//	log.Error().Msgf("文件打开|创建失败:%v，将不会进行文件监听", err)
-		//	return
-		//}
-		//f.Close()
 		watcher.AddWatcher("./data/resources/routeInfo.json", handler)
 	}()
 }

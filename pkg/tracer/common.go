@@ -173,7 +173,6 @@ func (tracer *Tracer) EndTrace(status TraceStatusEnum, message string) {
 	}
 	//扔到loki中去
 	labels := make(map[string]string)
-	labels["app"] = "isc-route-service"
 	labels["job"] = "tracelogs"
 	Client.AddStream(labels, []Message{tracer.buildLog()})
 }
@@ -190,23 +189,36 @@ func (tracer *Tracer) buildLog() Message {
 	return *result
 }
 
+type localIp struct {
+	LocalIp string
+}
+
+var li *localIp
+
 func GetLocalIp() string {
+	if li != nil {
+		return li.LocalIp
+	}
+	li = &localIp{
+		LocalIp: "127.0.0.1",
+	}
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		log.Warn().Msgf("获取本地地址异常,%v", err)
-		return "127.0.0.1"
+		return li.LocalIp
 	}
 	for _, address := range addrs {
 		// 检查ip地址判断是否回环地址
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
 				ip := fmt.Sprintf(ipnet.IP.String())
-				return ip
+				li = &localIp{ip}
+				return li.LocalIp
 			}
 
 		}
 	}
-	return "127.0.0.1"
+	return li.LocalIp
 }
 
 func ipAddrToInt(ipAddr string) int64 {

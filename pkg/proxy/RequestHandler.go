@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -17,8 +15,6 @@ import (
 	"isc-route-service/utils"
 	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -152,43 +148,6 @@ var transport = &http.Transport{
 
 //hostReverseProxy 真正的转发逻辑，基于httputil.NewSingleHostReverseProxy 进行代理转发
 func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.RouteInfo) error {
-	protocal := "HTTP"
-	targetUri := target.Url
-	if strings.HasPrefix(targetUri, "ws://") {
-		targetUri = strings.ReplaceAll(targetUri, "ws://", "http://")
-	}
-	if strings.HasPrefix(targetUri, "wss://") {
-		targetUri = strings.ReplaceAll(targetUri, "wss://", "https://")
-	}
-	remote, err := url.Parse(targetUri)
-	if err != nil {
-		msg := fmt.Sprintf("url 解析异常%v", err)
-		log.Error().Msgf(msg)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(msg))
-		return err
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	if target.Protocol != "" {
-		protocal = strings.ToUpper(target.Protocol)
-	}
-	var tls *tls.Config
-	if protocal == "HTTPS" {
-		tls, err = getVerTLSConfig("")
-		if err != nil {
-			msg := fmt.Sprintf("https crt error:%v", err)
-			log.Error().Msg(msg)
-			w.WriteHeader(http.StatusBadGateway)
-			w.Write([]byte(msg))
-			return err
-		}
-		transport.TLSClientConfig = tls
-	}
-	if isSpecialReq(req.URL.Path, &target) {
-		transport.IdleConnTimeout = 5 * time.Minute
-	}
-	proxy.Transport = transport
 	//traceClient处理,tracer.enter
 	trace, err := startTrace(req)
 	if err != nil {
@@ -196,6 +155,14 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 	} else {
 		trace.TraceName = fmt.Sprintf("<%s>%s", req.Method, req.URL.Path)
 		trace.Endpoint = tracer2.CLIENT
+	}
+	proxy, err := target.GetProxy(w, req)
+	if err != nil || proxy == nil {
+		return &exception.BusinessException{
+			Code:    1040404,
+			Message: fmt.Sprintf("代理创建失败:%v", err.Error()),
+			Data:    err,
+		}
 	}
 	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
 		//异常处理器
@@ -216,36 +183,21 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		trace.EndTrace(tracer2.OK, "")
 		return middleware.PostMiddleWare()
 	}
-	proxy.ServeHTTP(w, req)
-	return nil
-}
-
-//isSpecialReq 判断是否符合特殊处理，若符合则设置超时时间为5分钟
-func isSpecialReq(uri string, targetRoute *domain.RouteInfo) bool {
-	if len(targetRoute.SpecialUrl) == 0 {
-		return false
-	}
-	for _, item := range targetRoute.SpecialUrls {
-		paths := strings.Split(item, "/")
-		uriPaths := strings.Split(uri, "/")
-		var match = false
-	inner:
-		for idx, p := range paths {
-			if p == "" {
-				continue
+	done := make(chan error)
+	go func() {
+		defer func() {
+			if x := recover(); x != nil {
+				done <- x.(error)
 			}
-			if strings.Contains(p, "*") {
-				match = true
-				break inner
-			}
-			if p != uriPaths[idx] {
-				match = false
-				break inner
-			}
-		}
-		return match
-	}
-	return false
+			close(done)
+		}()
+		proxy.ServeHTTP(w, req)
+	}()
+	//回收
+	go func() {
+		target.AddProxy(proxy)
+	}()
+	return <-done
 }
 
 //getTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
@@ -266,33 +218,4 @@ func getTargetRoute(uri string) (*domain.RouteInfo, error) {
 		}
 	}
 	return nil, fmt.Errorf("路由规则不存在")
-}
-
-var tlsSkipVerify *tls.Config
-var tlsConfig *tls.Config
-
-//getVerTLSConfig 获取证书信息，CaPath表示证书路径，如果获取不到则表示跳过证书
-func getVerTLSConfig(CaPath string) (*tls.Config, error) {
-	if CaPath == "" {
-		if tlsSkipVerify == nil {
-			tlsSkipVerify = &tls.Config{
-				InsecureSkipVerify: true,
-			}
-		}
-		return tlsSkipVerify, nil
-	} else {
-		if tlsConfig == nil {
-			caData, err := ioutil.ReadFile(CaPath)
-			if err != nil {
-				log.Error().Msgf("read ca file fail,%v", err)
-				return nil, err
-			}
-			pool := x509.NewCertPool()
-			pool.AppendCertsFromPEM(caData)
-			tlsConfig = &tls.Config{
-				RootCAs: pool,
-			}
-		}
-		return tlsConfig, nil
-	}
 }
