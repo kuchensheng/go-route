@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -52,8 +53,26 @@ func getRemoteIp(c *http.Request) string {
 	return c.RemoteAddr
 }
 
+var counter atomic.Value
+
 //Forward http请求转发
 func Forward(c *gin.Context) {
+	v := counter.Load()
+	if v != nil {
+		counter.Store(v.(int) + 1)
+	} else {
+		v = 1
+		counter.Store(v)
+	}
+	if v.(int) >= domain.ApplicationConfig.Server.Limit {
+		log.Warn().Msgf("已积累的请求数:%v", counter.Load())
+		c.JSON(http.StatusTooManyRequests, exception.BusinessException{
+			Code:    1040429,
+			Message: "请求太频繁，路由服务限流512/s",
+		})
+		return
+	}
+
 	uri := c.Request.RequestURI
 	if uri == "/api/route/refreshRoute" {
 		handler.UpdateRoute(c)
@@ -130,6 +149,7 @@ func Forward(c *gin.Context) {
 	}(err)
 	result := <-resultChan
 	log.Debug().Msgf("代理转发完成\n%v", result)
+	counter.Store(counter.Load().(int) - 1)
 
 }
 

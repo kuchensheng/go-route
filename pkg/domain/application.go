@@ -26,6 +26,7 @@ type ServerConf struct {
 	Logging struct {
 		Level string `yaml:"level"`
 	} `yaml:"logging"`
+	Limit   int `yaml:"limit"`
 	Profile struct {
 		Active string `yaml:"active"`
 	} `yaml:"profile"`
@@ -50,6 +51,7 @@ func newDefaultConf() *AppServerConf {
 			Logging: struct {
 				Level string `yaml:"level"`
 			}(struct{ Level string }{Level: "INFO"}),
+			Limit: 512,
 		},
 		Loki: struct {
 			Host string `yaml:"host"`
