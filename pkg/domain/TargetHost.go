@@ -125,19 +125,18 @@ func (target *RouteInfo) GetProxy(w http.ResponseWriter, req *http.Request) (*ht
 		return nil, err
 	}
 	//
-	//var proxy *httputil.ReverseProxy
-	//ps,ok := proxyPool.Load(targetUri)
-	//if !ok || len(ps.([]*httputil.ReverseProxy)) == 0 {
-	//	proxy,err = target.createProxy(w,req,remote)
-	//	if err == nil {
-	//		target.AddProxy(proxy)
-	//	}
-	//} else {
-	//	proxies := ps.([]*httputil.ReverseProxy)
-	//	proxy = proxies[0]
-	//	proxyPool.Store(targetUri,proxies[1:])
-	//}
-	//proxy,err = target.createProxy(w,req,remote)
+	var proxy *httputil.ReverseProxy
+	ps, ok := proxyPool.Load(targetUri)
+	if !ok || len(ps.([]*httputil.ReverseProxy)) == 0 {
+		proxy, err = target.createProxy(w, req, remote)
+		if err == nil {
+			target.AddProxy(proxy)
+		}
+	} else {
+		proxies := ps.([]*httputil.ReverseProxy)
+		proxy = proxies[0]
+		proxyPool.Store(targetUri, proxies[1:])
+	}
 	return target.createProxy(w, req, remote)
 }
 func (target *RouteInfo) getTargetUri() string {
