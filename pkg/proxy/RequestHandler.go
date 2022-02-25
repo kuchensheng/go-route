@@ -64,6 +64,9 @@ func Forward(c *gin.Context) {
 		v = 1
 		counter.Store(v)
 	}
+	defer func() {
+		counter.Store(counter.Load().(int) - 1)
+	}()
 	if v.(int) >= domain.ApplicationConfig.Server.Limit {
 		log.Warn().Msgf("已积累的请求数:%v", counter.Load())
 		c.JSON(http.StatusTooManyRequests, exception.BusinessException{
@@ -149,7 +152,6 @@ func Forward(c *gin.Context) {
 	}(err)
 	result := <-resultChan
 	log.Debug().Msgf("代理转发完成\n%v", result)
-	counter.Store(counter.Load().(int) - 1)
 
 }
 
