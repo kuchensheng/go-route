@@ -121,20 +121,27 @@ func Valid(Req *http.Request, target []byte) error {
 	if _, ok := cache.Get(token); ok {
 		return nil
 	}
-	var req *http.Request
-	//todo 这里是否需要使用缓存，有待商榷
 	err = initHttpRequest()
 	if err != nil {
 		return err
 	}
-	req.Header = Req.Header
-	req.Header.Set("Connection", "keep-alive")
+	newReq := *req
+	for k, v := range Req.Header {
+		values := ""
+		if len(v) > 0 {
+			values = v[0]
+		}
+		newReq.Header.Set(k, values)
+	}
+	newReq.Header = Req.Header
+	//newReq.Header.Set("Connection", "keep-alive")
 	for _, cookie := range Req.Cookies() {
-		req.AddCookie(cookie)
+		newReq.AddCookie(cookie)
 	}
 	var resp *http.Response
-	if resp, err = client.Do(req); err != nil {
-		log.Error().Msgf("登录鉴权服务请求异常%v", err)
+	log.Info().Msgf("鉴权请求:%v", newReq)
+	if resp, err = client.Do(&newReq); err != nil {
+		log.Error().Msgf("登录鉴权服务请求异常%v,%v", err, *resp)
 		return &BusinessException{
 			StatusCode: http.StatusBadRequest,
 			Code:       1040400,
