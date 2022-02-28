@@ -189,7 +189,9 @@ func (client *LokiClient) send() error {
 	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(str)))
 	response, err := httpClient.Do(req)
 	defer func(Body io.ReadCloser) {
-		Body.Close()
+		if Body != nil {
+			Body.Close()
+		}
 	}(response.Body)
 	if err != nil {
 		return err

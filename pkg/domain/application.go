@@ -97,10 +97,12 @@ func (conf *AppServerConf) readApplicationYaml(act string) {
 	}
 }
 
-var loggerInfo zerolog.Logger
-var loggerDebug zerolog.Logger
-var loggerWarn zerolog.Logger
-var loggerError zerolog.Logger
+var loggerTrace *zerolog.Logger
+var loggerInfo *zerolog.Logger
+var loggerDebug *zerolog.Logger
+var loggerWarn *zerolog.Logger
+var loggerError *zerolog.Logger
+var loggerOther *zerolog.Logger
 
 func InitLog() {
 	initLogDir()
@@ -129,29 +131,36 @@ func InitLog() {
 
 		switch l {
 		case zerolog.DebugLevel:
-			e1 = loggerDebug.Debug()
+			e1 = loggerDebug.Debug().Stack()
 		case zerolog.InfoLevel:
-			e1 = loggerInfo.Info()
+			e1 = loggerInfo.Info().Stack()
 		case zerolog.WarnLevel:
-			e1 = loggerWarn.Warn()
+			e1 = loggerWarn.Warn().Stack()
 		case zerolog.ErrorLevel:
-			e1 = loggerError.Error()
+			e1 = loggerError.Error().Stack()
+		case zerolog.TraceLevel:
+			e1 = loggerTrace.Trace().Stack()
 		default:
 			//默认输出到stdError
+			e1 = log.Logger.WithLevel(l).Stack().Caller(2)
 		}
 		e1.Msg(msg)
 	})
-	log.Hook(levelInfoHook)
+	log.Logger = log.Logger.Hook(levelInfoHook)
 }
 
-func initLoggerFile(logDir string, fileName string) zerolog.Logger {
+func initLoggerFile(logDir string, fileName string) *zerolog.Logger {
 	var l zerolog.Logger
 	logFile := filepath.Join(logDir, fileName)
 	if file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm); err == nil {
-		l = log.With().Logger()
-		l.Output(file)
+		l = log.Logger.With().Logger()
+		out := zerolog.ConsoleWriter{Out: file, TimeFormat: "2006-01-02 15:04:05.000", NoColor: true}
+		out.FormatLevel = func(i interface{}) string {
+			return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))
+		}
+		l = l.Output(out).With().Caller().Logger()
 	}
-	return l
+	return &l
 }
 
 func initLogDir() {
@@ -165,5 +174,6 @@ func initLogDir() {
 	loggerDebug = initLoggerFile(logDir, "app-debug.log")
 	loggerWarn = initLoggerFile(logDir, "app-warn.log")
 	loggerError = initLoggerFile(logDir, "app-error.log")
-
+	loggerOther = initLoggerFile(logDir, "app-other.log")
+	loggerTrace = initLoggerFile(logDir, "app-trace.log")
 }
