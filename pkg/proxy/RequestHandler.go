@@ -69,24 +69,30 @@ func Forward(c *gin.Context) {
 		c.JSON(http.StatusOK, `{}`)
 		return
 	}
-
-	v := counter.Load()
-	if v != nil {
-		counter.Store(v.(int) + 1)
-	} else {
-		v = 1
-		counter.Store(v)
+	kernel := false
+	if strings.HasPrefix(uri, "/api/core") {
+		//系统内核访问路径，不经过计数器
+		kernel = true
 	}
-	defer func() {
-		counter.Store(counter.Load().(int) - 1)
-	}()
-	if v.(int) >= domain.ApplicationConfig.Server.Limit {
-		log.Warn().Msgf("已积累的请求数:%v", counter.Load())
-		c.JSON(http.StatusTooManyRequests, exception.BusinessException{
-			Code:    1040429,
-			Message: fmt.Sprintf("请求太频繁，路由服务限流%d/s", domain.ApplicationConfig.Server.Limit),
-		})
-		return
+	if !kernel {
+		v := counter.Load()
+		if v != nil {
+			counter.Store(v.(int) + 1)
+		} else {
+			v = 1
+			counter.Store(v)
+		}
+		defer func() {
+			counter.Store(counter.Load().(int) - 1)
+		}()
+		if v.(int) >= domain.ApplicationConfig.Server.Limit {
+			log.Warn().Msgf("已积累的请求数:%v", counter.Load())
+			c.JSON(http.StatusTooManyRequests, exception.BusinessException{
+				Code:    1040429,
+				Message: fmt.Sprintf("请求太频繁，路由服务限流%d/s", domain.ApplicationConfig.Server.Limit),
+			})
+			return
+		}
 	}
 
 	ch := make(chan error)
