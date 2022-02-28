@@ -229,7 +229,6 @@ func getTargetRoute(uri string) (*domain.RouteInfo, error) {
 	// 根据uri解析到目标路由服务
 	for _, route := range domain.RouteInfos {
 		path := route.Path
-		log.Info().Msgf("route.path= %s", path)
 		if strings.Contains(path, ";") {
 			for _, item := range strings.Split(path, ";") {
 				if utils.Match(uri, item) {
