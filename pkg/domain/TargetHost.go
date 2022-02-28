@@ -126,19 +126,6 @@ func (target *RouteInfo) GetProxy(w http.ResponseWriter, req *http.Request) (*ht
 		w.Write([]byte(msg))
 		return nil, err
 	}
-	//
-	var proxy *httputil.ReverseProxy
-	ps, ok := proxyPool.Load(targetUri)
-	if !ok || len(ps.([]*httputil.ReverseProxy)) == 0 {
-		proxy, err = target.createProxy(w, req, remote)
-		if err == nil {
-			target.AddProxy(proxy)
-		}
-	} else {
-		proxies := ps.([]*httputil.ReverseProxy)
-		proxy = proxies[0]
-		proxyPool.Store(targetUri, proxies[1:])
-	}
 	if target.Predicates != nil {
 		url := req.URL.Path
 		for _, v := range target.Predicates {
@@ -161,7 +148,30 @@ func (target *RouteInfo) GetProxy(w http.ResponseWriter, req *http.Request) (*ht
 			}
 		}
 	}
-	return target.createProxy(w, req, remote)
+	//
+	var proxy *httputil.ReverseProxy
+	ps, ok := proxyPool.Load(targetUri)
+	if !ok || len(ps.([]*httputil.ReverseProxy)) == 0 {
+		proxy, err = target.createProxy(w, req, remote)
+		if err == nil {
+			target.AddProxy(proxy)
+		}
+	} else {
+		proxies := ps.([]*httputil.ReverseProxy)
+		proxy = proxies[0]
+		proxyPool.Store(targetUri, proxies[1:])
+	}
+	t := *transport
+	if target.isSpecialReq(req.URL.Path) {
+		t.IdleConnTimeout = 5 * time.Minute
+		t.DialContext = (&net.Dialer{
+			Timeout:   5 * time.Minute,
+			KeepAlive: 30 * time.Second,
+		}).DialContext
+		t.ResponseHeaderTimeout = 5 * time.Minute
+	}
+	proxy.Transport = &t
+	return proxy, nil
 }
 func (target *RouteInfo) getTargetUri() string {
 	targetUri := target.Url
@@ -215,9 +225,6 @@ func (target *RouteInfo) createProxy(w http.ResponseWriter, req *http.Request, r
 			return nil, err
 		}
 		transport.TLSClientConfig = tls
-	}
-	if target.isSpecialReq(req.URL.Path) {
-		transport.IdleConnTimeout = 5 * time.Minute
 	}
 	proxy.Transport = transport
 
