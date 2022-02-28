@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,7 @@ type RouteInfo struct {
 	CreateTime  string   `json:"create_time"`
 	UpdateTime  string   `json:"update_time"`
 	AppCode     string   `json:"appCode"`
+	Predicates  []string `json:"predicates"`
 }
 
 func GetRouteInfoConfigPath() string {
@@ -137,6 +139,28 @@ func (target *RouteInfo) GetProxy(w http.ResponseWriter, req *http.Request) (*ht
 		proxy = proxies[0]
 		proxyPool.Store(targetUri, proxies[1:])
 	}
+	if target.Predicates != nil {
+		url := req.URL.Path
+		for _, v := range target.Predicates {
+			if !strings.Contains(v, "=") {
+				log.Debug().Msgf("predicates must contains = ,eq:stripPrefix=2")
+				continue
+			}
+			kv := strings.Split(v, "=")
+			key := strings.TrimSpace(kv[0])
+			value := kv[1]
+			if key == "stripPrefix" {
+				v1, err := strconv.ParseInt(value, 10, 0)
+				if err != nil {
+					continue
+				}
+				subUrls := strings.Split(url, "/")
+				subUrls = subUrls[v1:]
+				url = strings.Join(subUrls, "/")
+				req.URL.Path = url
+			}
+		}
+	}
 	return target.createProxy(w, req, remote)
 }
 func (target *RouteInfo) getTargetUri() string {
@@ -217,7 +241,7 @@ func InitRouteInfo() {
 		riMap := make(map[string]RouteInfo)
 		if len(RouteInfos) > 0 {
 			for _, item := range RouteInfos {
-				riMap[item.ServiceId] = item
+				riMap[item.ServiceId+"_"+item.Protocol] = item
 			}
 		}
 		//获取文件中的路由规则信息
@@ -250,7 +274,7 @@ func InitRouteInfo() {
 						e.AppCode = appCode
 					}
 				}
-				riMap[e.ServiceId] = e
+				riMap[e.ServiceId+"_"+e.Protocol] = e
 			}
 			//将路由信息再次转换为list
 			var newRouteInfos []RouteInfo

@@ -119,7 +119,7 @@ func InitLog() {
 	}
 	zerolog.CallerSkipFrameCount = 2
 	zerolog.TimeFieldFormat = time.RFC3339
-	out := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000"}
+	out := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05.000", NoColor: true}
 	out.FormatLevel = func(i interface{}) string {
 		return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))
 	}
@@ -142,7 +142,7 @@ func InitLog() {
 			e1 = loggerTrace.Trace().Stack()
 		default:
 			//默认输出到stdError
-			e1 = log.Logger.WithLevel(l).Stack().Caller(2)
+			//e1 = log.Logger.WithLevel(l).Stack().Caller(2)
 		}
 		e1.Msg(msg)
 	})

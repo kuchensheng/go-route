@@ -57,6 +57,16 @@ var counter atomic.Value
 
 //Forward http请求转发
 func Forward(c *gin.Context) {
+	uri := c.Request.RequestURI
+	if uri == "/api/route/refreshRoute" {
+		handler.UpdateRoute(c)
+		return
+	}
+	if uri == "/api/route/system/status" {
+		c.JSON(http.StatusOK, `{}`)
+		return
+	}
+
 	v := counter.Load()
 	if v != nil {
 		counter.Store(v.(int) + 1)
@@ -71,19 +81,11 @@ func Forward(c *gin.Context) {
 		log.Warn().Msgf("已积累的请求数:%v", counter.Load())
 		c.JSON(http.StatusTooManyRequests, exception.BusinessException{
 			Code:    1040429,
-			Message: "请求太频繁，路由服务限流512/s",
+			Message: fmt.Sprintf("请求太频繁，路由服务限流%d/s", domain.ApplicationConfig.Server.Limit),
 		})
 		return
 	}
 
-	uri := c.Request.RequestURI
-	if uri == "/api/route/refreshRoute" {
-		handler.UpdateRoute(c)
-		return
-	}
-	if uri == "/api/route/system/status" {
-		c.JSON(http.StatusOK, `{}`)
-	}
 	ch := make(chan error)
 	defer close(ch)
 	//开启tracer
@@ -227,6 +229,7 @@ func getTargetRoute(uri string) (*domain.RouteInfo, error) {
 	// 根据uri解析到目标路由服务
 	for _, route := range domain.RouteInfos {
 		path := route.Path
+		log.Info().Msgf("route.path= %s", path)
 		if strings.Contains(path, ";") {
 			for _, item := range strings.Split(path, ";") {
 				if utils.Match(uri, item) {

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
@@ -188,11 +187,6 @@ func (client *LokiClient) send() error {
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(str)))
 	response, err := httpClient.Do(req)
-	defer func(Body io.ReadCloser) {
-		if Body != nil {
-			Body.Close()
-		}
-	}(response.Body)
 	if err != nil {
 		return err
 	} else if response != nil && response.StatusCode != 204 {
