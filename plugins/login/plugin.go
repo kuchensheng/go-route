@@ -146,6 +146,7 @@ func Valid(Req *http.Request, target []byte) error {
 	newReq := *req
 	newReq.Header.Set("token", getToken(Req))
 	var resp *http.Response
+	log.Debug().Msgf("请求信息:%v", newReq)
 	if resp, err = client.Do(&newReq); err != nil {
 		log.Error().Msgf("登录鉴权服务请求异常%v,%v", err, *resp)
 		return &BusinessException{
@@ -171,8 +172,9 @@ func Valid(Req *http.Request, target []byte) error {
 			Data:       err,
 		}
 	}
-	jsonData := &Status{}
-	err = json.Unmarshal(data, jsonData)
+	jsonData := Status{}
+	log.Debug().Msgf("响应数据:%s", string(data))
+	err = json.Unmarshal(data, &jsonData)
 	if err != nil {
 		return &BusinessException{
 			StatusCode: http.StatusInternalServerError,
@@ -194,6 +196,7 @@ func Valid(Req *http.Request, target []byte) error {
 		}
 	}
 
+	log.Debug().Msgf("解析后的数据:%v,code=%d,message=%s", jsonData, jsonData.Code, jsonData.Message)
 	c := jsonData.Code
 	m := jsonData.Message
 	if m == "" {
@@ -206,7 +209,7 @@ func Valid(Req *http.Request, target []byte) error {
 			Message:    m,
 		}
 	}
-	cache.Set(token, *jsonData, 10*time.Millisecond)
+	cache.Set(token, jsonData, 10*time.Millisecond)
 	//验证通过后，添加请求头
 	Req.Header.Set("t-head-userId", jsonData.Data.UserId)
 	Req.Header.Set("t-head-userName", jsonData.Data.LoginName)
