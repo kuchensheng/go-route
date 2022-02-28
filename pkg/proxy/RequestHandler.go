@@ -40,12 +40,15 @@ func TCPForward(proxyConn *net.TCPConn) {
 }
 func startTrace(c *http.Request) (*tracer2.Tracer, error) {
 	//开启tracer
-	tracer, err := tracer2.New()
+	tracer, err := tracer2.New(c)
 	if err != nil {
 		return nil, err
 	}
 	tracer.TraceType = tracer2.HTTP
 	tracer.RemoteIp = getRemoteIp(c)
+	if c.Header.Get("t-head-traceId") == "" {
+		c.Header.Set("t-head-traceId", tracer.TracId)
+	}
 	return tracer, nil
 }
 

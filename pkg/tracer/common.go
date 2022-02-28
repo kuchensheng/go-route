@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"isc-route-service/pkg/domain"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ const (
 
 type Tracer struct {
 	//调用链ID,一旦初始化,不能修改
-	tracId       string
+	TracId       string
 	rpcId        string
 	TraceType    TraceTypeEnum
 	TraceName    string
@@ -138,14 +139,18 @@ func GenerateTraceId() string {
 	//hex.Decode(result, []byte(buffer))
 	return buffer
 }
-func New() (*Tracer, error) {
+func New(req *http.Request) (*Tracer, error) {
 	//newId, err := currWorker.NextId()
 	//if err != nil {
 	//	return nil, err
 	//}
+	traceId := req.Header.Get("t-head-traceId")
+	if traceId != "" {
+		traceId = GenerateTraceId()
+	}
 	return &Tracer{
 		//tracId:    strconv.FormatInt(newId, 19),
-		tracId:    GenerateTraceId(),
+		TracId:    traceId,
 		sampled:   true,
 		startTime: time.Now().UnixMilli(),
 		rpcId:     "0",
@@ -156,7 +161,7 @@ func (tracer *Tracer) EndTrace(status TraceStatusEnum, message string) {
 	if tracer.Ended {
 		return
 	}
-	if tracer.tracId == "" {
+	if tracer.TracId == "" {
 		return
 	}
 	if tracer.rpcId == "" {
@@ -181,7 +186,7 @@ func (tracer *Tracer) buildLog() Message {
 	result := &Message{
 		Time: strconv.FormatInt(tracer.endTime, 10) + "000000",
 	}
-	strItem = append(strItem, "0", "default", strconv.FormatInt(tracer.startTime, 10), tracer.tracId,
+	strItem = append(strItem, "0", "default", strconv.FormatInt(tracer.startTime, 10), tracer.TracId,
 		tracer.rpcId, strconv.Itoa(int(tracer.Endpoint)), strconv.Itoa(int(tracer.TraceType)), tracer.TraceName,
 		"isc-route-service", GetLocalIp(), tracer.RemoteIp, strconv.Itoa(int(tracer.status)), strconv.Itoa(tracer.Size),
 		strconv.FormatInt(tracer.endTime-tracer.startTime, 10), tracer.message)
