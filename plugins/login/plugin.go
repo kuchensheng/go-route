@@ -91,6 +91,24 @@ func initHttpRequest() error {
 	return nil
 }
 
+func getToken(req *http.Request) string {
+	//从header中获取
+	token := req.Header.Get("token")
+	if token != "" {
+		return token
+	}
+	token = req.URL.Query().Get("token")
+	if token != "" {
+		return token
+	}
+	c, err := req.Cookie("X-Isyscore-Permission-Sid")
+	if err != nil {
+		log.Error().Msgf("读取cookie[%s]读取异常，token=nil", "X-Isyscore-Permission-Sid")
+		return token
+	}
+	return c.Value
+}
+
 //Valid 函数则是我们需要在调用方显式查找的symbol
 func Valid(Req *http.Request, target []byte) error {
 	p := RouteInfo{}
@@ -126,20 +144,8 @@ func Valid(Req *http.Request, target []byte) error {
 		return err
 	}
 	newReq := *req
-	for k, v := range Req.Header {
-		values := ""
-		if len(v) > 0 {
-			values = v[0]
-		}
-		newReq.Header.Set(k, values)
-	}
-	newReq.Header = Req.Header
-	//newReq.Header.Set("Connection", "keep-alive")
-	for _, cookie := range Req.Cookies() {
-		newReq.AddCookie(cookie)
-	}
+	newReq.Header.Set("token", getToken(Req))
 	var resp *http.Response
-	log.Info().Msgf("鉴权请求:%v", newReq)
 	if resp, err = client.Do(&newReq); err != nil {
 		log.Error().Msgf("登录鉴权服务请求异常%v,%v", err, *resp)
 		return &BusinessException{
