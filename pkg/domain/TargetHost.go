@@ -168,7 +168,7 @@ func (target *RouteInfo) GetProxy(w http.ResponseWriter, req *http.Request) (*ht
 			Timeout:   5 * time.Minute,
 			KeepAlive: 30 * time.Second,
 		}).DialContext
-		t.ResponseHeaderTimeout = 5 * time.Minute
+		//t.ResponseHeaderTimeout = 5 * time.Minute
 	}
 	proxy.Transport = &t
 	return proxy, nil
@@ -202,10 +202,10 @@ var transport = &http.Transport{
 		Timeout:   5 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}).DialContext,
-	MaxIdleConns:          1024,
-	MaxIdleConnsPerHost:   512,
-	IdleConnTimeout:       time.Duration(5) * time.Second,
-	ResponseHeaderTimeout: 5 * time.Second,
+	MaxIdleConns:        1024,
+	MaxIdleConnsPerHost: 512,
+	IdleConnTimeout:     time.Duration(5) * time.Second,
+	//ResponseHeaderTimeout: 5 * time.Second,
 }
 
 func (target *RouteInfo) createProxy(w http.ResponseWriter, req *http.Request, remote *url.URL) (*httputil.ReverseProxy, error) {
