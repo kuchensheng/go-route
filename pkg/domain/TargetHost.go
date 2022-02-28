@@ -24,6 +24,12 @@ import (
 var RouteInfos []RouteInfo
 var ConfigPath string
 
+const (
+	Kernel int = iota
+	Center
+	Other
+)
+
 type Id int
 type RouteInfo struct {
 	Id
@@ -39,6 +45,8 @@ type RouteInfo struct {
 	UpdateTime  string   `json:"update_time"`
 	AppCode     string   `json:"appCode"`
 	Predicates  []string `json:"predicates"`
+	//Type returns route type,
+	Type int `json:"type"`
 }
 
 func GetRouteInfoConfigPath() string {
