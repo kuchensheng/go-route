@@ -145,7 +145,7 @@ func New(req *http.Request) (*Tracer, error) {
 	//	return nil, err
 	//}
 	traceId := req.Header.Get("t-head-traceId")
-	if traceId != "" {
+	if traceId == "" {
 		traceId = GenerateTraceId()
 	}
 	return &Tracer{
