@@ -39,12 +39,12 @@ func main() {
 		return
 	}
 
+	//读取指定配置文件信息
+	domain.ReadProfileYaml()
 	//初始加载路由规则
 	domain.InitRouteInfo()
 	//初始化加载动态库信息
 	domain.InitPlugins()
-	//读取指定配置文件信息
-	domain.ReadProfileYaml()
 	//go func() {
 	//	log.Info().Msgf("tcp服务监听占用端口:%d", *tcpPort)
 	//	tcpListener, err := net.ListenTCP("tcp", &net.TCPAddr{Port: *tcpPort})
