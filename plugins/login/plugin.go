@@ -64,22 +64,19 @@ func contains(excludeUrls []string, uri string) bool {
 	return false
 }
 
-var req *http.Request
 var client *http.Client
 var cache *cache2.Cache
 
-func initHttpRequest() error {
-	if req == nil {
-		if r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil); err != nil {
-			log.Error().Msgf("初始化异常%v", err)
-			return &BusinessException{
-				StatusCode: http.StatusInternalServerError,
-				Code:       1040500,
-				Message:    "登录鉴权服务请求异常,详情见isc-permission-service",
-				Data:       err,
-			}
-		} else {
-			req = r
+func initHttpRequest() (*http.Request, error) {
+	var r *http.Request
+	var err error
+	if r, err = http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s%s", lc.AuthServer, lc.StatusUrl), nil); err != nil {
+		log.Error().Msgf("初始化异常%v", err)
+		return nil, &BusinessException{
+			StatusCode: http.StatusInternalServerError,
+			Code:       1040500,
+			Message:    "登录鉴权服务请求异常,详情见isc-permission-service",
+			Data:       err,
 		}
 	}
 	if client == nil {
@@ -88,10 +85,10 @@ func initHttpRequest() error {
 		}
 		client = c
 	}
-	return nil
+	return r, nil
 }
 
-func getToken(req *http.Request) string {
+func getToken(req http.Request) string {
 	//从header中获取
 	token := req.Header.Get("token")
 	if token != "" {
@@ -139,16 +136,15 @@ func Valid(Req *http.Request, target []byte) error {
 	if _, ok := cache.Get(token); ok {
 		return nil
 	}
-	err = initHttpRequest()
+	newReq, err := initHttpRequest()
 	if err != nil {
 		return err
 	}
-	newReq := *req
-	newReq.Header.Set("token", getToken(Req))
+	newReq.Header.Set("token", getToken(*Req))
 	var resp *http.Response
 	log.Debug().Msgf("请求信息:%v", newReq)
-	if resp, err = client.Do(&newReq); err != nil {
-		log.Error().Msgf("登录鉴权服务请求异常%v,%v", err, *resp)
+	if resp, err = client.Do(newReq); err != nil {
+		log.Error().Msgf("登录鉴权服务请求异常%v", err)
 		return &BusinessException{
 			StatusCode: http.StatusBadRequest,
 			Code:       1040400,
