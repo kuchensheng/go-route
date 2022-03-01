@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -118,7 +119,9 @@ var loggerError *zerolog.Logger
 var loggerOther *zerolog.Logger
 
 func InitLog() {
+	InitWriter()
 	initLogDir()
+
 	level := ApplicationConfig.Server.Logging.Level
 	l := zerolog.InfoLevel
 	if level != "" {
@@ -132,47 +135,35 @@ func InitLog() {
 	}
 	zerolog.CallerSkipFrameCount = 2
 	zerolog.TimeFieldFormat = time.RFC3339
+
 	out := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05.000", NoColor: true}
 	out.FormatLevel = func(i interface{}) string {
 		return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))
 	}
-	log.Logger = log.Logger.Output(out).With().Caller().Logger()
-	//添加hook
-	levelInfoHook := zerolog.HookFunc(func(e *zerolog.Event, l zerolog.Level, msg string) {
-		//levelName := l.String()
-		e1 := e
+	sw := &syslogWriter{}
+	writer := zerolog.MultiLevelWriter(out, zerolog.MultiLevelWriter(zerolog.SyslogLevelWriter(sw)))
+	log.Logger = log.Logger.Output(writer).With().Caller().Logger()
+}
 
-		switch l {
-		case zerolog.DebugLevel:
-			e1 = loggerDebug.Debug().Stack()
-		case zerolog.InfoLevel:
-			e1 = loggerInfo.Info().Stack()
-		case zerolog.WarnLevel:
-			e1 = loggerWarn.Warn().Stack()
-		case zerolog.ErrorLevel:
-			e1 = loggerError.Error().Stack()
-		case zerolog.TraceLevel:
-			e1 = loggerTrace.Trace().Stack()
-		default:
-			//默认输出到stdError
-			//e1 = log.Logger.WithLevel(l).Stack().Caller(2)
-		}
-		e1.Msg(msg)
-	})
-	log.Logger = log.Logger.Hook(levelInfoHook)
+func getWriter(logDir, fileName string) io.Writer {
+	logFile := filepath.Join(logDir, fileName+"-%Y%m%d.log")
+	linkName := filepath.Join(logDir, fileName+".log")
+	file, err := rotatelogs.New(logFile, rotatelogs.WithLinkName(linkName), rotatelogs.WithMaxAge(24*time.Hour), rotatelogs.WithRotationTime(time.Hour))
+	if err != nil {
+		return nil
+	}
+	return file
 }
 
 func initLoggerFile(logDir string, fileName string) *zerolog.Logger {
 	var l zerolog.Logger
-	logFile := filepath.Join(logDir, fileName+"-%Y%m%d.log")
-	linkName := filepath.Join(logDir, fileName+".log")
-	if file, err := rotatelogs.New(logFile, rotatelogs.WithLinkName(linkName), rotatelogs.WithMaxAge(24*time.Hour), rotatelogs.WithRotationTime(time.Hour)); err == nil {
+	if file := getWriter(logDir, fileName); file != nil {
 		l = log.Logger.With().Logger()
-		out := zerolog.ConsoleWriter{Out: file, TimeFormat: "2006-01-02 15:04:05.000", NoColor: true}
-		out.FormatLevel = func(i interface{}) string {
-			return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))
-		}
-		l = l.Output(out).With().Caller().Logger()
+		//out := zerolog.ConsoleWriter{Out: file, TimeFormat: "2006-01-02 15:04:05.000", NoColor: true}
+		//out.FormatLevel = func(i interface{}) string {
+		//	return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))
+		//}
+		l = l.Output(file).With().Logger()
 	}
 	return &l
 }
