@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
@@ -39,7 +40,13 @@ type AppServerConf struct {
 	Rc struct {
 		Host      string `yaml:"host"`
 		Relevance string `yaml:"relevance"`
-	}
+	} `yaml:"rc"`
+	Mysql struct {
+		Host     string `yaml:"host"`
+		UserName string `yaml:"user_name"`
+		Password string `yaml:"password"`
+		DataBase string `yaml:"data_base"`
+	} `yaml:"mysql"`
 }
 
 func newDefaultConf() *AppServerConf {
@@ -56,6 +63,12 @@ func newDefaultConf() *AppServerConf {
 		Loki: struct {
 			Host string `yaml:"host"`
 		}{Host: "http://loki-service:3100"},
+		Mysql: struct {
+			Host     string `yaml:"host"`
+			UserName string `yaml:"user_name"`
+			Password string `yaml:"password"`
+			DataBase string `yaml:"data_base"`
+		}{Host: "mysql-service:3306", UserName: "isyscore", Password: "Isysc0re", DataBase: "isc_service"},
 	}
 }
 
@@ -151,8 +164,9 @@ func InitLog() {
 
 func initLoggerFile(logDir string, fileName string) *zerolog.Logger {
 	var l zerolog.Logger
-	logFile := filepath.Join(logDir, fileName)
-	if file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm); err == nil {
+	logFile := filepath.Join(logDir, fileName+"-%Y%m%d.log")
+	linkName := filepath.Join(logDir, fileName+".log")
+	if file, err := rotatelogs.New(logFile, rotatelogs.WithLinkName(linkName), rotatelogs.WithMaxAge(24*time.Hour), rotatelogs.WithRotationTime(time.Hour)); err == nil {
 		l = log.Logger.With().Logger()
 		out := zerolog.ConsoleWriter{Out: file, TimeFormat: "2006-01-02 15:04:05.000", NoColor: true}
 		out.FormatLevel = func(i interface{}) string {
@@ -170,10 +184,10 @@ func initLogDir() {
 		_ = os.Mkdir(logDir, os.ModePerm)
 	}
 	// 创建日志文件
-	loggerInfo = initLoggerFile(logDir, "app-info.log")
-	loggerDebug = initLoggerFile(logDir, "app-debug.log")
-	loggerWarn = initLoggerFile(logDir, "app-warn.log")
-	loggerError = initLoggerFile(logDir, "app-error.log")
-	loggerOther = initLoggerFile(logDir, "app-other.log")
-	loggerTrace = initLoggerFile(logDir, "app-trace.log")
+	loggerInfo = initLoggerFile(logDir, "app-info")
+	loggerDebug = initLoggerFile(logDir, "app-debug")
+	loggerWarn = initLoggerFile(logDir, "app-warn")
+	loggerError = initLoggerFile(logDir, "app-error")
+	loggerOther = initLoggerFile(logDir, "app-other")
+	loggerTrace = initLoggerFile(logDir, "app-trace")
 }
