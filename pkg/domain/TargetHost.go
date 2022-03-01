@@ -82,6 +82,10 @@ func db2RouteInfo(route DBRouteInfo) (*RouteInfo, error) {
 	} else {
 		r.Protocol = B2S(protocol.([]uint8))
 	}
+	if route.Url == nil {
+		return nil, errors.New("url不能为空")
+	}
+	r.Url = B2S(route.Url.([]uint8))
 	excludeUrl := route.ExcludeUrl
 	if excludeUrl == nil {
 		r.ExcludeUrl = ""
