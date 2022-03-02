@@ -1,13 +1,21 @@
 server:
   port: 31000
+  logging:
+    level: info
+  limit: 512
 redis:
-  master: master
   addrs:
-    - 10.30.30.78:26379
-  password: ZljIsyscore123
+    - redis-service:26379
+  password: ZljIsysc0re123
   db: 7
+loki:
+  host: http://loki-service:3100
+rc:
+  host: http://isc-rc-application-service:34200
+  relevance: "/api/rc-application/application/service/relevance"
+
 mysql:
-  host: 10.30.30.78:23306
-  user_name: root
+  host: mysql-service:23306
+  user_name: isyscore
   password: Isysc0re
   data_base: isc_service
