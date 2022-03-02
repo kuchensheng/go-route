@@ -122,18 +122,23 @@ func init() {
 	InitLog()
 }
 func ReadProfileYaml() {
+	//先读取application.yml
+	ApplicationConfig.readApplicationYaml("")
 	if Profile != "" {
+		//再读取application-${profile}.yml
 		ApplicationConfig.readApplicationYaml(Profile)
 	}
 }
 func (conf *AppServerConf) readApplicationYaml(act string) {
 	pwd, _ := os.Getwd()
 	path := "application.yml"
+	fp := filepath.Join(pwd, path)
 	if act != "" {
 		path = fmt.Sprintf("application-%s.yml", act)
+		fp = filepath.Join(pwd, "config", path)
 	}
 	log.Info().Msgf("加载[%s]文件", path)
-	fp := filepath.Join(pwd, path)
+
 	data, err := ioutil.ReadFile(fp)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
