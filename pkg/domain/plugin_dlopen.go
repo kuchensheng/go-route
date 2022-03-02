@@ -1,5 +1,4 @@
 //go:build (linux && cgo) || (darwin && cgo) || (freebsd && cgo)
-// +build linux,cgo darwin,cgo freebsd,cgo
 
 package domain
 
@@ -22,5 +21,11 @@ func openPlugin(pluginInfo *PluginInfo) (*PluginPointer, error) {
 	}
 	pp.PluginInfo = *pluginInfo
 	pp.Symbol = symbol
+	defer func(pointer *PluginPointer, err2 error) (*PluginPointer, error) {
+		if x := recover(); x != nil {
+			return nil, x.(error)
+		}
+		return pointer, err2
+	}(pp, err)
 	return pp, nil
 }

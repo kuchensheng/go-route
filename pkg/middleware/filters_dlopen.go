@@ -51,6 +51,12 @@ func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 		}
 	}
 
+	defer func() error {
+		if x := recover(); x != nil {
+			return x.(error)
+		}
+		return nil
+	}()
 	return nil
 }
 
