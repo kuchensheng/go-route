@@ -133,7 +133,7 @@ func (conf *AppServerConf) readApplicationYaml(act string) {
 		path = fmt.Sprintf("application-%s.yml", act)
 	}
 	log.Info().Msgf("加载[%s]文件", path)
-	fp := filepath.Join(pwd, path)
+	fp := filepath.Join(pwd, "config", path)
 	data, err := ioutil.ReadFile(fp)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
