@@ -121,10 +121,18 @@ func init() {
 
 	InitLog()
 }
+
+//ReadProfileYaml 读取application.yml文件，如果Profile不为空,或者server.profile.active不为空，则再次读取对应的application-${profile}.yml
+//如果map相同，则覆盖更新
 func ReadProfileYaml() {
-	if Profile != "" {
-		ApplicationConfig.readApplicationYaml(Profile)
+	ApplicationConfig.readApplicationYaml("")
+	if Profile == "" {
+		Profile = os.Getenv("profiles")
 	}
+	if Profile == "" {
+		Profile = "default"
+	}
+	ApplicationConfig.readApplicationYaml(Profile)
 }
 func (conf *AppServerConf) readApplicationYaml(act string) {
 	pwd, _ := os.Getwd()
@@ -132,8 +140,11 @@ func (conf *AppServerConf) readApplicationYaml(act string) {
 	if act != "" {
 		path = fmt.Sprintf("application-%s.yml", act)
 	}
-	log.Info().Msgf("加载[%s]文件", path)
-	fp := filepath.Join(pwd, "config", path)
+	fp := filepath.Join(pwd, path)
+	if act == "default" {
+		fp = filepath.Join(pwd, "config", path)
+	}
+	log.Info().Msgf("加载[%s]文件", fp)
 	data, err := ioutil.ReadFile(fp)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -145,6 +156,9 @@ func (conf *AppServerConf) readApplicationYaml(act string) {
 		err = yaml.Unmarshal(data, conf)
 		if err != nil {
 			log.Fatal().Msgf("application.yml解析错误", err)
+		}
+		if Profile == "" {
+			Profile = conf.Server.Profile.Active
 		}
 	}
 }
