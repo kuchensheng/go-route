@@ -69,6 +69,10 @@ func Forward(c *gin.Context) {
 		c.JSON(http.StatusOK, `{}`)
 		return
 	}
+	if uri == "/api/route/list" {
+		handler.RouteList(c)
+		return
+	}
 	kernel := false
 	if strings.HasPrefix(uri, "/api/core") {
 		//系统内核访问路径，不经过计数器

@@ -133,3 +133,7 @@ func checkPath(ri domain.RouteInfo, c *gin.Context) {
 		return
 	}
 }
+
+func RouteList(c *gin.Context) {
+	c.JSON(http.StatusOK, domain.RouteInfos)
+}
