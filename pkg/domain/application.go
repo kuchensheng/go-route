@@ -1,9 +1,10 @@
 package domain
 
+//Package domain's application provides application runtime config,it will read config info from resources/application.yml,
+//and overwrite it from resources/application-dev.yaml if Profile equals dev.
 import (
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -16,18 +17,53 @@ import (
 	"time"
 )
 
+//Profile File to be loaded application-${Profile}.yml
 var Profile string
 
+//ApplicationConfig the pointer of whole application config.the summary is as follows
+//		type ServerConf struct {
+//			Port    int    `yaml:"port"`
+//			Name    string `yaml:"name"`
+//			Module  string `yaml:"api-module"`
+//			Logging struct {
+//				Level string `yaml:"level"`
+//			} `yaml:"logging"`
+//			Limit   int `yaml:"limit"`
+//			Profile struct {
+//				Active string `yaml:"active"`
+//			} `yaml:"profile"`
+//		}
+//		type AppServerConf struct {
+//			Server ServerConf `yaml:"server"`
+//			Loki   struct {
+//				Host string `yaml:"host"`
+//			} `yaml:"loki"`
+//			Rc struct {
+//				Host      string `yaml:"host"`
+//				Relevance string `yaml:"relevance"`
+//			} `yaml:"rc"`
+//			Mysql struct {
+//				Host     string `yaml:"host"`
+//				UserName string `yaml:"user_name"`
+//				Password string `yaml:"password"`
+//				DataBase string `yaml:"data_base"`
+//			} `yaml:"mysql"`
+//		}
 var ApplicationConfig *AppServerConf
-var RedisClient *redis.Client
 
 type ServerConf struct {
-	Port    int    `yaml:"port"`
-	Name    string `yaml:"name"`
-	Module  string `yaml:"api-module"`
+	//Port server port ,default 31000
+	Port int `yaml:"port"`
+	//Name application's name ,default value isc-route-service
+	Name string `yaml:"name"`
+	//Module servlet context path ,default value is `route`
+	Module string `yaml:"api-module"`
+	//Logging server's log config
 	Logging struct {
+		//Level log's level by all comparable types(debug,info,warn,error,fatal,panic,trace)
 		Level string `yaml:"level"`
 	} `yaml:"logging"`
+	//Limit server's requests per second,default value is 512/s
 	Limit   int `yaml:"limit"`
 	Profile struct {
 		Active string `yaml:"active"`
@@ -50,6 +86,7 @@ type AppServerConf struct {
 	} `yaml:"mysql"`
 }
 
+//newDefaultConf 初始化默认值
 func newDefaultConf() *AppServerConf {
 	return &AppServerConf{
 		Server: ServerConf{
@@ -81,6 +118,7 @@ func init() {
 	if act != "" {
 		ApplicationConfig.readApplicationYaml(act)
 	}
+
 	InitLog()
 }
 func ReadProfileYaml() {
@@ -118,6 +156,7 @@ var loggerWarn *zerolog.Logger
 var loggerError *zerolog.Logger
 var loggerOther *zerolog.Logger
 
+//InitLog 初始化日志设置
 func InitLog() {
 	InitWriter()
 	initLogDir()
@@ -145,6 +184,7 @@ func InitLog() {
 	log.Logger = log.Logger.Output(writer).With().Caller().Logger()
 }
 
+//getWriter 根据参数logDir,fileName 确定输出流
 func getWriter(logDir, fileName string) io.Writer {
 	logFile := filepath.Join(logDir, fileName+"-%Y%m%d.log")
 	linkName := filepath.Join(logDir, fileName+".log")
