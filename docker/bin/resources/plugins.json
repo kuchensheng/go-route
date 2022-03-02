@@ -1,0 +1,23 @@
+[
+  {
+    "name": "授权校验",
+    "path": "license/plugin.so",
+    "order": 0,
+    "method": "Valid",
+    "type" : 0
+  },
+  {
+    "name": "登录校验",
+    "path": "login/plugin.so",
+    "order": 1,
+    "method": "Valid",
+    "type" : 0
+  },
+  {
+    "name": "AccessToken",
+    "path": "accessToken/plugin.so",
+    "order": 2,
+    "method": "Valid",
+    "type" : 0
+  }
+]
