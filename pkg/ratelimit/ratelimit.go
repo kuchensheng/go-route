@@ -1,9 +1,15 @@
 package ratelimit
 
 import (
+	"fmt"
+	"github.com/gin-gonic/gin"
 	log "github.com/rs/zerolog/log"
+	"isc-route-service/pkg/domain"
+	"isc-route-service/pkg/exception"
 	"math"
+	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -337,4 +343,34 @@ func (realClock) Now() time.Time {
 // Now implements Clock.Sleep by calling time.Sleep.
 func (realClock) Sleep(d time.Duration) {
 	time.Sleep(d)
+}
+
+var bucket *Bucket
+
+func RateLimiterHandler(c *gin.Context) bool {
+	uri := c.Request.RequestURI
+	kernel := false
+	if strings.HasPrefix(uri, "/api/core") {
+		//系统内核访问路径，不经过计数器
+		kernel = true
+	}
+	if !kernel {
+		if bucket == nil {
+			bucket = NewBucketWithQuantum(1*time.Second, int64(domain.ApplicationConfig.Server.Limit), 512)
+		}
+		//获取令牌
+		before := bucket.Available()
+		tokenGet := bucket.TakeAvailable(1)
+		if tokenGet == 0 {
+			log.Warn().Msgf("未获取到令牌，拒绝访问")
+			c.JSON(http.StatusOK, exception.BusinessException{
+				Code:    1040429,
+				Message: fmt.Sprintf("请求太频繁，路由服务限流%d/s", domain.ApplicationConfig.Server.Limit),
+			})
+			return true
+		}
+		log.Debug().Msgf("获取到令牌,前后数量比对：%d ->%d,tokenGet=%d", before, bucket.Available(), tokenGet)
+		return false
+	}
+	return false
 }

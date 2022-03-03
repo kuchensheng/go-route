@@ -56,45 +56,15 @@ func getRemoteIp(c *http.Request) string {
 	return c.RemoteAddr
 }
 
-var bucket *ratelimit.Bucket
-
 //Forward http请求转发
 func Forward(c *gin.Context) {
+	if handler.IscRouteHandler(c) {
+		return
+	}
+	if ratelimit.RateLimiterHandler(c) {
+		return
+	}
 	uri := c.Request.RequestURI
-	if uri == "/api/route/refreshRoute" {
-		handler.UpdateRoute(c)
-		return
-	}
-	if uri == "/api/route/system/status" {
-		c.JSON(http.StatusOK, `{}`)
-		return
-	}
-	if uri == "/api/route/list" {
-		handler.RouteList(c)
-		return
-	}
-	kernel := false
-	if strings.HasPrefix(uri, "/api/core") {
-		//系统内核访问路径，不经过计数器
-		kernel = true
-	}
-	if !kernel {
-		if bucket == nil {
-			bucket = ratelimit.NewBucketWithQuantum(1*time.Second, int64(domain.ApplicationConfig.Server.Limit), 512)
-		}
-		//获取令牌
-		before := bucket.Available()
-		tokenGet := bucket.TakeAvailable(1)
-		if tokenGet == 0 {
-			log.Warn().Msgf("未获取到令牌，拒绝访问")
-			c.JSON(http.StatusOK, exception.BusinessException{
-				Code:    1040429,
-				Message: fmt.Sprintf("请求太频繁，路由服务限流%d/s", domain.ApplicationConfig.Server.Limit),
-			})
-			return
-		}
-		log.Debug().Msgf("获取到令牌,前后数量比对：%d ->%d,tokenGet=%d", before, bucket.Available(), tokenGet)
-	}
 
 	ch := make(chan error)
 	defer close(ch)

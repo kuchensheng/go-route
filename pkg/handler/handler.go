@@ -14,6 +14,12 @@ import (
 	"strings"
 )
 
+const (
+	REFRESH_URI    = "/api/route/refreshRoute"
+	STATUS_URI     = "/api/route/system/status"
+	ROUTE_LIST_URI = "/api/route/list"
+)
+
 func UpdateRoute(c *gin.Context) {
 	//获取请求体
 	b := c.Request.Body
@@ -136,4 +142,23 @@ func checkPath(ri domain.RouteInfo, c *gin.Context) {
 
 func RouteList(c *gin.Context) {
 	c.JSON(http.StatusOK, domain.RouteInfos)
+}
+
+func IscRouteHandler(c *gin.Context) bool {
+	uri := c.Request.RequestURI
+	switch uri {
+	case ROUTE_LIST_URI:
+		log.Info().Msgf("获取路由列表")
+		RouteList(c)
+		return true
+	case REFRESH_URI:
+		log.Info().Msgf("更新路由列表")
+		UpdateRoute(c)
+		return true
+	case STATUS_URI:
+		c.JSON(http.StatusOK, `{}`)
+		return true
+	default:
+		return false
+	}
 }
