@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"io"
 	"isc-route-service/pkg/domain"
+	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/proxy"
 	"os/exec"
 )
@@ -71,7 +73,8 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery(), cors.Default())
 	//todo 拦截器
-	router.Any("/*action", proxy.Forward)
+	router.Any("/api/*action", proxy.Forward)
+	router.POST("/metrics", handler.PromHandler(promhttp.Handler()))
 	pr := *port
 	p := domain.ApplicationConfig.Server.Port
 	if p != 0 {

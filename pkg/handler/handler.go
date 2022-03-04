@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"isc-route-service/pkg/domain"
@@ -19,7 +18,6 @@ const (
 	REFRESH_URI    = "/api/route/refreshRoute"
 	STATUS_URI     = "/api/route/system/status"
 	ROUTE_LIST_URI = "/api/route/list"
-	PROMETHEUS     = "/metrics"
 )
 
 func UpdateRoute(c *gin.Context) {
@@ -160,10 +158,13 @@ func IscRouteHandler(c *gin.Context) bool {
 	case STATUS_URI:
 		c.JSON(http.StatusOK, `{}`)
 		return true
-	case PROMETHEUS:
-		promhttp.Handler()
-		return true
 	default:
 		return false
+	}
+}
+
+func PromHandler(handler http.Handler) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		handler.ServeHTTP(c.Writer, c.Request)
 	}
 }
