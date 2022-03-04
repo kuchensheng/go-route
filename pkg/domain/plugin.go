@@ -23,6 +23,8 @@ var PostPlugsins []PluginPointer
 
 var OtherPlugins []PluginPointer
 
+var AllPlugins []PluginInfo
+
 //PluginConfigPath 动态链接库定义文件地址
 var PluginConfigPath string
 
@@ -109,6 +111,7 @@ func InitPlugins() {
 				log.Error().Stack().Msgf("动态链接库[%s]加载异常,%v", pluginInfo.Name, err)
 				continue
 			} else {
+				AllPlugins = append(AllPlugins, pluginInfo)
 				//按照分类放入list，以待执行
 				switch pluginInfo.Type {
 				case PRE:
