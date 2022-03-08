@@ -1,6 +1,7 @@
 server:
   port: 31000
   limit: 512
+  compatible: true
 redis:
   addrs:
     - redis-service:26379
