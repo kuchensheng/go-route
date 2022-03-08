@@ -68,6 +68,8 @@ type ServerConf struct {
 	Profile struct {
 		Active string `yaml:"active"`
 	} `yaml:"profile"`
+	//Compatible default vale is false.if it is true,it will let GetRouteInfoConfigPath read Mysql Database, of isc-route-service 3.x
+	Compatible bool `yaml:"compatible"`
 }
 type AppServerConf struct {
 	Server ServerConf `yaml:"server"`
@@ -96,7 +98,8 @@ func newDefaultConf() *AppServerConf {
 			Logging: struct {
 				Level string `yaml:"level"`
 			}(struct{ Level string }{Level: "INFO"}),
-			Limit: 512,
+			Limit:      512,
+			Compatible: false,
 		},
 		Loki: struct {
 			Host string `yaml:"host"`
