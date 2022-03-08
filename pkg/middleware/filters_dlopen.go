@@ -22,14 +22,7 @@ func MiddleWare() gin.HandlerFunc {
 func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 	//处理器按照order字段已排序
 	for _, pp := range plugins {
-		//变量赋值
-		p := pp.Plugin
-		//log.Info().Msgf("执行插件[%s]方法[%s],pp指针地址：%s", pp.Name, pp.Method,&p)
-		method, err := p.Lookup(pp.Method)
-		if err != nil {
-			log.Warn().Msgf("插件[%s]方法[%s]读取异常,%v", pp.Name, pp.Method, err)
-			continue
-		}
+		var method = pp.Symbol
 		//方法执行
 		var runtimeError error
 		if pp.Args < 0 {
