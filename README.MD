@@ -71,3 +71,43 @@ curl --silent --location --request POST 'http://10.30.30.78:38080/api/route/refr
 ##错误码
 异常码均遵循指令集异常码规范，路由服务的code前缀1040~,例如1040400 = BadRequest,1040502 = BadGateway等
 无其他特殊异常码
+
+### 配置信息
+```yaml
+server:
+  # 服务端口号
+  port: 31000
+  # 日志相关设置
+  logging:
+    # 日志级别设置，默认info
+    level: info
+  # 限流设置，默认512/s
+  limit: 512
+  # 是否开启兼容模式，兼容模式将从mysql数据库中读取路由规则信息
+  compatible: true
+
+# redis相关设置
+redis:
+  addrs:
+    - redis-service:26379
+  password: ZljIsysc0re123
+  db: 7
+# loki日志服务器
+loki:
+  # 服务器地址
+  host: http://loki-service:3100
+  # 是否启用loki服务器，默认false，不启用
+  enable: true
+# 注册中心相关处理
+rc:
+  # 注册中心服务地址
+  host: http://isc-rc-application-service:34200
+  # 获取应用code地址信息
+  relevance: "/api/rc-application/application/service/relevance"
+
+mysql:
+  host: mysql-service:23306
+  user_name: isyscore
+  password: Isysc0re
+  data_base: isc_service
+```
