@@ -99,14 +99,15 @@ func init() {
 	c := cron.New()
 	c.AddFunc("* * * * * ?", func() {
 		//上传到loki中
-		err := Client.send()
-		defer func() {
-			Client.currentMessage.Streams = []jsonStream{}
-		}()
-		if err != nil {
-			log.Warn().Msgf("日志上传异常%v", err)
+		if len(Client.currentMessage.Streams) > 0 {
+			err := Client.send()
+			defer func() {
+				Client.currentMessage.Streams = []jsonStream{}
+			}()
+			if err != nil {
+				log.Warn().Msgf("日志上传异常%v", err)
+			}
 		}
-
 	})
 	c.Start()
 }

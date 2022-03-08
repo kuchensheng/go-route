@@ -74,7 +74,8 @@ type ServerConf struct {
 type AppServerConf struct {
 	Server ServerConf `yaml:"server"`
 	Loki   struct {
-		Host string `yaml:"host"`
+		Host   string `yaml:"host"`
+		Enable bool   `yaml:"enable"`
 	} `yaml:"loki"`
 	Rc struct {
 		Host      string `yaml:"host"`
@@ -102,8 +103,9 @@ func newDefaultConf() *AppServerConf {
 			Compatible: false,
 		},
 		Loki: struct {
-			Host string `yaml:"host"`
-		}{Host: "http://loki-service:3100"},
+			Host   string `yaml:"host"`
+			Enable bool   `yaml:"enable"`
+		}{Host: "http://loki-service:3100", Enable: false},
 		Mysql: struct {
 			Host     string `yaml:"host"`
 			UserName string `yaml:"user_name"`
