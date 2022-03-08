@@ -66,16 +66,20 @@ func Forward(c *gin.Context) {
 
 	ch := make(chan error)
 	defer close(ch)
-	//开启tracer
-	tracer, err := startTrace(c.Request)
-	if err != nil {
-		log.Error().Msgf("链路跟踪服务端开启异常,\n%v", err)
-		ch <- err
+	var tracer *tracer2.Tracer
+	var err error
+	if domain.ApplicationConfig.Loki.Enable {
+		//开启tracer
+		tracer, err = startTrace(c.Request)
+		if err != nil {
+			log.Error().Msgf("链路跟踪服务端开启异常,\n%v", err)
+			ch <- err
+		}
+		//设置当前节点是服务端trace
+		tracer.Endpoint = tracer2.SERVER
+		//获取remoteIP
+		tracer.RemoteIp = c.ClientIP()
 	}
-	//设置当前节点是服务端trace
-	tracer.Endpoint = tracer2.SERVER
-	//获取remoteIP
-	tracer.RemoteIp = c.ClientIP()
 
 	//开启协程转发http请求
 	go func() {
@@ -150,13 +154,18 @@ var transport = &http.Transport{
 //hostReverseProxy 真正的转发逻辑，基于httputil.NewSingleHostReverseProxy 进行代理转发
 func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.RouteInfo) error {
 	//traceClient处理,tracer.enter
-	trace, err := startTrace(req)
-	if err != nil {
-		log.Warn().Msgf("链路跟踪客户端初始化异常，将不开启客户端跟踪\n%v", err)
-	} else {
-		trace.TraceName = fmt.Sprintf("<%s>%s", req.Method, req.URL.Path)
-		trace.Endpoint = tracer2.CLIENT
+	var trace *tracer2.Tracer
+	var err error
+	if domain.ApplicationConfig.Loki.Enable {
+		trace, err = startTrace(req)
+		if err != nil {
+			log.Warn().Msgf("链路跟踪客户端初始化异常，将不开启客户端跟踪\n%v", err)
+		} else {
+			trace.TraceName = fmt.Sprintf("<%s>%s", req.Method, req.URL.Path)
+			trace.Endpoint = tracer2.CLIENT
+		}
 	}
+
 	proxy, err := target.GetProxy(w, req)
 	if err != nil || proxy == nil {
 		return &exception.BusinessException{
@@ -175,13 +184,15 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		}
 		data, _ := json.Marshal(writeContent)
 		w.Write(data)
-		if err != nil {
+		if err != nil && trace != nil {
 			trace.EndTrace(tracer2.WARNING, err.Error())
 		}
 	}
 	proxy.ModifyResponse = func(response *http.Response) error {
 		//todo 代理响应处理，这里可以作为数据脱敏等处理
-		trace.EndTrace(tracer2.OK, "")
+		if trace != nil {
+			trace.EndTrace(tracer2.OK, "")
+		}
 		return middleware.PostMiddleWare()
 	}
 	done := make(chan error)

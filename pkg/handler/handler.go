@@ -287,7 +287,7 @@ func IscRouteHandler(c *gin.Context) bool {
 	uri := c.Request.RequestURI
 	switch uri {
 	case ROUTE_LIST_URI:
-		log.Info().Msgf("获取路由列表")
+		log.Debug().Msgf("获取路由列表")
 		RouteList(c)
 		return true
 	case REFRESH_URI:
