@@ -326,6 +326,31 @@ func (target *RouteInfo) createProxy(w http.ResponseWriter, req *http.Request, r
 
 	return proxy, nil
 }
+
+var R *Router
+
+func InitRouter(routes []RouteInfo) {
+	records := []Record{}
+	for _, routeInfo := range routes {
+		key := routeInfo.Path
+		if strings.Contains(key, ";") {
+			keys := strings.Split(key, ";")
+			for _, k := range keys {
+				if k != "" {
+					records = append(records, Record{Key: k, Value: routeInfo})
+				}
+			}
+		} else {
+			records = append(records, Record{Key: key, Value: routeInfo})
+		}
+	}
+	r := New()
+	R = r
+	if err := R.Build(records); err != nil {
+		log.Panic().Msgf("路由索引生成失败,%v", err)
+	}
+}
+
 func InitRouteInfo() {
 	log.Info().Msg("初始加载路由规则")
 	cp := GetRouteInfoConfigPath()
@@ -385,6 +410,7 @@ func InitRouteInfo() {
 				newRouteInfos = append(newRouteInfos, v)
 			}
 			RouteInfos = newRouteInfos
+			InitRouter(newRouteInfos)
 		}
 
 	}
@@ -455,4 +481,15 @@ func getServiceIdCodeMap() map[string]string {
 	}
 
 	return result
+}
+
+//GetTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
+func GetTargetRoute(uri string) (*RouteInfo, error) {
+	// 根据uri解析到目标路由服务
+	lookup, _, found := R.Lookup(uri)
+	if found {
+		value := lookup.(RouteInfo)
+		return &value, nil
+	}
+	return nil, fmt.Errorf("路由规则不存在")
 }

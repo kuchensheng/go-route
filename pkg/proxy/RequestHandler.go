@@ -13,11 +13,9 @@ import (
 	"isc-route-service/pkg/ratelimit"
 	tracer2 "isc-route-service/pkg/tracer"
 	plugins "isc-route-service/plugins/common"
-	"isc-route-service/utils"
 	"net"
 	"net/http"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -83,7 +81,7 @@ func Forward(c *gin.Context) {
 	go func() {
 		//请求转发前的动作
 		//1.查看目标主机信息，clientRecovery
-		targetHost, err := getTargetRoute(uri)
+		targetHost, err := domain.GetTargetRoute(uri)
 		if err != nil {
 			c.JSON(404, exception.BusinessException{
 				Code:    1040404,
@@ -198,24 +196,4 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 		target.AddProxy(proxy)
 	}()
 	return <-done
-}
-
-//getTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
-func getTargetRoute(uri string) (*domain.RouteInfo, error) {
-	// 根据uri解析到目标路由服务
-	for _, route := range domain.RouteInfos {
-		path := route.Path
-		if strings.Contains(path, ";") {
-			for _, item := range strings.Split(path, ";") {
-				if utils.Match(uri, item) {
-					return &route, nil
-				}
-			}
-		} else {
-			if utils.Match(uri, path) {
-				return &route, nil
-			}
-		}
-	}
-	return nil, fmt.Errorf("路由规则不存在")
 }
