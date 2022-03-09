@@ -11,6 +11,7 @@ import (
 	"isc-route-service/pkg/domain"
 	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/proxy"
+	"os"
 	"os/exec"
 )
 
@@ -24,6 +25,12 @@ func main() {
 
 	flag.Parse()
 	log.Info().Msgf("拷贝plugins和resources目录到data目录下")
+	if _, err := os.Stat("data"); err != nil {
+		if os.IsNotExist(err) {
+			f, _ := os.Create("data")
+			f.Close()
+		}
+	}
 	mvDir := func(dir string) error {
 		cmd := exec.Command("cp", "-r", "-n", dir, "data/")
 		log.Info().Msgf("执行命令：%s", cmd.String())

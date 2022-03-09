@@ -6,4 +6,9 @@
 target/
 vcs.xml
 /data
+/docker/data
+/docker/files
+/docker/ld
+/docker/server
+/docker/application.yml
 logs

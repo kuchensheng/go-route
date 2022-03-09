@@ -8,7 +8,7 @@ RUN set -x \
     && echo "Asia/Shanghai" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-COPY bin/ /home/isc-route-service
+COPY . /home/isc-route-service
 
 WORKDIR "/home/isc-route-service"
 
