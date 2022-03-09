@@ -51,7 +51,7 @@ docker pull 10.30.30.22:9080/isyscore/isc-route-service:v4.0.0.20220307-dev
 
 ## 运行方式
 **注意**
-可运行文件的配置信息放置到docker/bin目录下，如果程序无法运行，请自行拷贝对应文件到根目录下
+可运行文件的配置信息放置到output目录下，如果程序无法运行，请自行拷贝对应文件到根目录下
 ```ssh
 # 运行时可以指明配置未知，否则会加载默认值
  -conf /mnt/d/worksapace/go/isc-route-service/resources/routeInfo.json -plugins /mnt/d/worksapace/go/isc-route-service/resources/plugins.json
@@ -63,13 +63,13 @@ docker pull 10.30.30.22:9080/isyscore/isc-route-service:v4.0.0.20220307-dev
 ## 构建login插件
 cd /home/isc-route-service/plugins
 ./compile.sh login 
-## 插件将会被输出到 ../docker/bin/plugins/login/plugin.so
+## 插件将会被输出到 ../output/plugins/login/plugin.so
 ```
 当执行镜像构建命令时，该插件将会被一起打包
 
 ### 镜像构建命令
 [build.sh](docker/build.sh)
-+ 收集docker/bin目录下所有的文件并构建成可执行文件
++ 收集output目录下所有的文件并构建成可执行文件
 + 默认使用Ubuntu 20.4作为基础镜像，也可以使用10.30.30.22:9080/isyscore/golang:1.18beta2-alpine3.15 + gcc +  musl-dev
 
 ##错误码
@@ -136,8 +136,8 @@ _不允许重复上传插件_
 ```text
 curl --silent --location --request POST 'http://127.0.0.1:31000/api/route/plugins' \
 --header 'token: f0d52a55-677e-438a-b9fe-83727b195707' \
---form 'plugin=@"/D:/worksapace/go/isc-route-service/docker/bin/plugins/appauth/plugin.so"' \
---form 'config=@"/D:/worksapace/go/isc-route-service/docker/bin/plugins/appauth/conf.yml"' \
+--form 'plugin=@"/D:/worksapace/go/isc-route-service/output/plugins/appauth/plugin.so"' \
+--form 'config=@"/D:/worksapace/go/isc-route-service/output/plugins/appauth/conf.yml"' \
 --form 'method="Valid"' \
 --form 'order="0"' \
 --form 'type="0"' \

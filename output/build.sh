@@ -2,11 +2,11 @@ TAG=${1:-latest}
 echo "$TAG"
 export GO111MODULE ON
 
-echo "删除原有可执行文件 bin/server"
+echo "删除原有可执行文件 isc-route-service"
 rm bin/server
-echo "开始构建新的可执行文件 bin/server"
+echo "开始构建新的可执行文件 isc-route-service"
 
-GOARCH=amd64 GOOS=linux go build -gcflags "all=-N -l" -ldflags "-s -w" -o bin/server ../main.go
+GOARCH=amd64 GOOS=linux go build -gcflags "all=-N -l" -ldflags "-s -w" -o isc-route-service ../main.go
 # shellcheck disable=SC1009
 size() {
   stat -c %s "$1" | tr -d '\n'
