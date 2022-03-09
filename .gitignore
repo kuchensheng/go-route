@@ -5,8 +5,5 @@
 *.iml
 target/
 vcs.xml
-/docker/bin/logs
-/docker/bin/data/
-/docker/bin/server
-/data/plugins
-/data/resouces
+/data
+logs

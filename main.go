@@ -30,12 +30,12 @@ func main() {
 		return cmd.Run()
 
 	}
-	err := mvDir("resources")
+	err := mvDir("files/.")
 	if err != nil {
 		log.Error().Msgf("resource目录拷贝异常%v", err)
 		return
 	}
-	err = mvDir("plugins")
+	err = mvDir("ld/.")
 	if err != nil {
 		log.Error().Msgf("plugins目录拷贝异常%v", err)
 		return

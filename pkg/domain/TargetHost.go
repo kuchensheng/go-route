@@ -142,7 +142,7 @@ func GetRouteInfoConfigPath() string {
 					log.Info().Msgf("执行命令：%s", cmd.String())
 					return cmd.Run()
 				}
-				err := mvDir("init/routeInfo.json")
+				err := mvDir("data/init/routeInfo.json")
 				if err != nil {
 					log.Error().Msgf("resource目录拷贝异常%v", err)
 				}
