@@ -17,6 +17,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -136,12 +137,15 @@ func GetRouteInfoConfigPath() string {
 		log.Info().Msgf("路由配置文件:%s", fp)
 		if _, err := os.Stat(fp); os.IsNotExist(err) {
 			if !ApplicationConfig.Server.Compatible {
-				log.Info().Msgf("创建文件：%s", fp)
-				f, err := os.Create(fp)
-				if err != nil {
-					log.Fatal().Msgf("路由配置文件创建失败%v", err)
+				mvDir := func(dir string) error {
+					cmd := exec.Command("cp", "-r", "-n", dir, "data/resources/routeInfo.json")
+					log.Info().Msgf("执行命令：%s", cmd.String())
+					return cmd.Run()
 				}
-				defer f.Close()
+				err := mvDir("init/routeInfo.json")
+				if err != nil {
+					log.Error().Msgf("resource目录拷贝异常%v", err)
+				}
 			} else {
 				log.Error().Msg("路由配置文件不存在,从数据库中读取数据")
 				readDataBase(fp)
