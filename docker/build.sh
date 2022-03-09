@@ -3,7 +3,7 @@ echo "$TAG"
 export GO111MODULE ON
 
 echo "删除原有可执行文件 server"
-rm server
+rm -f ./server
 echo "开始构建新的可执行文件 server"
 
 GOARCH=amd64 GOOS=linux go build -gcflags "all=-N -l" -ldflags "-s -w" -o server ../main.go
