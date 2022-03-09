@@ -1,0 +1,11 @@
+server:
+  logging:
+    level: info
+  limit: 512
+redis:
+  password: ${Part3SA_redis_password:Isysc0re}
+
+mysql:
+  host: mysql-service:23306
+  user_name: ${Part3SA_datasource_username:isyscore}
+  password: ${Part3SA_datasource_password:Isysc0re}
