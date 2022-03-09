@@ -384,9 +384,13 @@ func InitRouteInfo() {
 		}
 		if len(ris) > 0 {
 			//获取appCode
+
 			serviceIdCodeMap := getServiceIdCodeMap()
 			//合并同类项,以ris为准
 			for _, item := range ris {
+				if item.ServiceId == "" {
+					continue
+				}
 				var e = item
 				if item.ExcludeUrl != "" {
 					e.ExcludeUrls = []string{item.ExcludeUrl}

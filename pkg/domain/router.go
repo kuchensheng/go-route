@@ -438,6 +438,15 @@ func makeRecords(srcs []Record) (statics, params []*record) {
 	spChars := string([]byte{ParamCharacter, WildcardCharacter})
 	termChar := string(TerminationCharacter)
 	for _, r := range srcs {
+		if strings.Contains(r.Key, string("?")) {
+			oldKey := r.Key
+			r.Key += string(WildcardCharacter) + termChar
+			params = append(params, &record{Record: r})
+
+			r.Key = strings.Replace(oldKey, string("?"), "", 1)
+			statics = append(statics, &record{Record: r})
+			continue
+		}
 		if strings.ContainsAny(r.Key, spChars) {
 			r.Key += termChar
 			params = append(params, &record{Record: r})
