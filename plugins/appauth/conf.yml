@@ -1,4 +1,4 @@
 tenant:
   address:
-    auth: http://10.30.30.78:29033
+    auth: http://isc-authorization-service:29033
     url: /api/core/authorization/one

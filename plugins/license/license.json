@@ -1,4 +1,4 @@
 {
-  "host": "10.30.30.78:29013",
+  "host": "isc-license-service:9013",
   "url" : "/api/core/license/valid"
 }
