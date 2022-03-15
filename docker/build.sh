@@ -1,6 +1,21 @@
 TAG=${1:-latest}
 echo "$TAG"
-export GO111MODULE ON
+export GO111MODULE ON \
+
+echo "构建插件"
+cd ../plugins
+
+# shellcheck disable=SC2045
+for dir in $(ls ./)
+do
+  # shellcheck disable=SC2107
+  if [ -d $dir ] && [ $dir != "common" ]; then
+      ./compile.sh $dir
+  fi
+
+done
+
+cd ../docker
 
 echo "删除原有可执行文件 server"
 rm server
