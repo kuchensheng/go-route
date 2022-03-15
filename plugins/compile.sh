@@ -2,7 +2,7 @@ echo "删除../ld/plugins/$1/plugin.so"
 rm -f ../ld/plugins/"$1"/plugin.so
 echo "构建 $1/plugin.so" \
 
-go build -gcflags "all=-N -l" -ldflags "-s -w" -o ../ld/plugins/"$1"/plugin.so -buildmode=plugin "$1"/plugin.go
+go build -gcflags "all=-N -l" -ldflags "-s -w" -o ../ld/plugins/"$1"/plugin.so -buildmode=plugin "$1"/plugin.go \
 
 size() {
   stat -c %s "$1" | tr -d '\n'
