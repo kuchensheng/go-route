@@ -12,3 +12,4 @@ vcs.xml
 /docker/server
 /docker/application.yml
 logs
+/ld
