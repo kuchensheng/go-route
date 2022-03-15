@@ -1,7 +1,0 @@
-redis:
-  Addr: redis-service:26379
-  Password: ZljIsyscore123
-  DB: 7
-access-token:
-  urls :
-    - "/api/common"

@@ -27,8 +27,7 @@ func main() {
 	log.Info().Msgf("拷贝plugins和resources目录到data目录下")
 	if _, err := os.Stat("data"); err != nil {
 		if os.IsNotExist(err) {
-			f, _ := os.Create("data")
-			f.Close()
+			err = os.Mkdir("data", os.ModeDir)
 		}
 	}
 	mvDir := func(dir string) error {
