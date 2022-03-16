@@ -14,4 +14,4 @@ WORKDIR "/home/isc-route-service"
 
 RUN chmod 755 "/home/isc-route-service/"
 
-CMD ["/home/isc-route-service/server"]
+CMD ["/home/isc-route-service/isc-route-service"]

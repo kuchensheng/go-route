@@ -44,9 +44,9 @@ size() {
   stat -c %s "$1" | tr -d '\n'
 }
 echo "执行压缩命令upx,压缩前文件大小:" + `size "isc-route-service"`
-#upx -o  s1 isc-route-service
-#rm isc-route-service
-#mv s1 isc-route-service
+upx -o  s1 isc-route-service
+rm isc-route-service
+mv s1 isc-route-service
 
 
 echo "压缩后的文件大小" + `size "isc-route-service"`
@@ -57,4 +57,4 @@ rm -rf logs
 rm -rf data/plugins
 rm -rf data/resources
 
-#docker build -t 10.30.30.22:9080/isyscore/isc-route-service:"$TAG" . && docker push 10.30.30.22:9080/isyscore/isc-route-service:"$TAG"
+docker build -t 10.30.30.22:9080/isyscore/isc-route-service:"$TAG" . && docker push 10.30.30.22:9080/isyscore/isc-route-service:"$TAG"
