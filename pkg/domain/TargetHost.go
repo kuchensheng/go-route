@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
+	"isc-route-service/utils"
 	"isc-route-service/watcher"
 	"net"
 	"net/http"
@@ -373,7 +374,7 @@ func InitRouteInfo() {
 		riMap := make(map[string]RouteInfo)
 		if len(RouteInfos) > 0 {
 			for _, item := range RouteInfos {
-				riMap[item.ServiceId+"_"+item.Protocol] = item
+				riMap[item.Path+"_"+item.ServiceId+"_"+item.Protocol] = item
 			}
 		}
 		//获取文件中的路由规则信息
@@ -410,7 +411,7 @@ func InitRouteInfo() {
 						e.AppCode = appCode
 					}
 				}
-				riMap[e.ServiceId+"_"+e.Protocol] = e
+				riMap[e.Path+"_"+e.ServiceId+"_"+e.Protocol] = e
 			}
 			//将路由信息再次转换为list
 			var newRouteInfos []RouteInfo
@@ -489,15 +490,25 @@ func getServiceIdCodeMap() map[string]string {
 	}
 
 	return result
+
 }
 
-//GetTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
-func GetTargetRoute(uri string) (*RouteInfo, error) {
+//getTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
+func getTargetRoute(uri string) (*RouteInfo, error) {
 	// 根据uri解析到目标路由服务
-	lookup, _, found := R.Lookup(uri)
-	if found {
-		value := lookup.(RouteInfo)
-		return &value, nil
+	for _, route := range RouteInfos {
+		path := route.Path
+		if strings.Contains(path, ";") {
+			for _, item := range strings.Split(path, ";") {
+				if utils.Match(uri, item) {
+					return &route, nil
+				}
+			}
+		} else {
+			if utils.Match(uri, path) {
+				return &route, nil
+			}
+		}
 	}
 	return nil, fmt.Errorf("路由规则不存在")
 }
