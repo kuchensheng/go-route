@@ -493,8 +493,8 @@ func getServiceIdCodeMap() map[string]string {
 
 }
 
-//getTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
-func getTargetRoute(uri string) (*RouteInfo, error) {
+//GetTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
+func GetTargetRoute(uri string) (*RouteInfo, error) {
 	// 根据uri解析到目标路由服务
 	for _, route := range RouteInfos {
 		path := route.Path
