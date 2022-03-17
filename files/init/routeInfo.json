@@ -434,7 +434,7 @@
   {
     "id":180,
     "path":"/api/diopups/**",
-    "serviceId":"isc-diop-service-ups",
+    "serviceId":"isc-diop-service",
     "url":"http://isc-diop-service:9024/",
     "enabled":1,
     "create_time":"2021/9/3 13:42:01",
@@ -506,7 +506,7 @@
   {
     "id":192,
     "path":"/api/data/diop/**",
-    "serviceId":"isc-diop-service-data",
+    "serviceId":"isc-diop-service",
     "url":"http://isc-diop-service:9023/",
     "enabled":1,
     "create_time":"2022/3/5 17:02:47",
