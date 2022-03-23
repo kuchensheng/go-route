@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -44,18 +45,47 @@ func UpdateRoute(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	checkUrl(ri, c)
-	checkPath(ri, c)
-	if ri.ExcludeUrl != "" {
-		ri.ExcludeUrls = strings.Split(ri.ExcludeUrl, ";")
-	}
-	if ri.SpecialUrl != "" {
-		ri.SpecialUrls = strings.Split(ri.SpecialUrl, ";")
+	var err1 error
+	for _, item := range domain.RouteInfos {
+		if item.ServiceId == ri.ServiceId {
+			item.Enabled = ri.Enabled
+			if ri.Path != "" {
+				item.Path = ri.Path
+			}
+			if ri.Url != "" {
+				item.Url = ri.Url
+			}
+			if ri.ExcludeUrl != "" {
+				item.ExcludeUrl = ri.ExcludeUrl
+			}
+			if ri.SpecialUrl != "" {
+				item.SpecialUrl = ri.SpecialUrl
+			}
+			if ri.Predicates != nil {
+				item.Predicates = ri.Predicates
+			}
+			if ri.AppCode != "" {
+				item.AppCode = ri.AppCode
+			}
+			item.UpdateTime = time.Now().Format(time.RFC3339)
+			checkUrl(item, c)
+			checkPath(item, c)
+			if item.ExcludeUrl != "" {
+				item.ExcludeUrls = strings.Split(ri.ExcludeUrl, ";")
+			}
+			if item.SpecialUrl != "" {
+				item.SpecialUrls = strings.Split(ri.SpecialUrl, ";")
+			}
+			if err1 = saveOrUpdate(item); err1 != nil {
+				break
+			}
+		}
 	}
 	//添加路由信息
-	if saveOrUpdate(ri) != nil {
+	if err1 != nil {
 		c.JSON(http.StatusInternalServerError, err)
 	}
+
 }
 
 func saveOrUpdate(ri domain.RouteInfo) error {
