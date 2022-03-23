@@ -4,6 +4,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog/log"
 	"path/filepath"
+	"reflect"
+	"runtime"
 	"strings"
 )
 
@@ -31,7 +33,7 @@ func AddWatcher(watcherPath string, handler func(filePath string)) {
 				}
 				log.Debug().Msgf("%s %s is write:%v\n", event.Name, event.Op, event.Op&fsnotify.Write == fsnotify.Write)
 				if event.Op&fsnotify.Write == fsnotify.Write && strings.HasSuffix(event.Name, fileName) {
-					log.Info().Msgf("监听到文件[%s]发生了改变,将执行函数[%v]", watcherPath, handler)
+					log.Info().Msgf("监听到文件[%s]发生了改变,将执行函数[%v]", watcherPath, runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name())
 					handler(watcherPath)
 				}
 			case err, ok := <-watcher.Errors:

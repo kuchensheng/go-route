@@ -51,7 +51,8 @@ type RouteInfo struct {
 	AppCode     string   `json:"appCode"`
 	Predicates  []string `json:"predicates"`
 	//Type returns route type,
-	Type int `json:"type"`
+	Type   int `json:"type"`
+	Enable int `json:"enabled"`
 }
 
 type DBRouteInfo struct {
@@ -64,6 +65,7 @@ type DBRouteInfo struct {
 	SpecialUrl *string `db:"special_url"`
 	CreateTime *string `db:"create_time"`
 	UpdateTime *string `db:"update_time"`
+	Enable     *int    `db:"enabled"`
 }
 
 func B2S(bs []uint8) string {
@@ -81,9 +83,15 @@ func db2RouteInfo(route DBRouteInfo) (*RouteInfo, error) {
 	if route.Path == nil {
 		return nil, errors.New("path为空")
 	}
-	r := &RouteInfo{}
-	data, _ := json.Marshal(route)
-	json.Unmarshal(data, r)
+	r := &RouteInfo{Enable: 1}
+	data, err := json.Marshal(route)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(data, r)
+	if err != nil {
+		return nil, err
+	}
 	protocol := route.Protocol
 	if protocol == nil {
 		r.Protocol = "HTTP"
@@ -497,6 +505,9 @@ func getServiceIdCodeMap() map[string]string {
 func GetTargetRoute(uri string) (*RouteInfo, error) {
 	// 根据uri解析到目标路由服务
 	for _, route := range RouteInfos {
+		if route.Enable != 1 {
+			continue
+		}
 		path := route.Path
 		if strings.Contains(path, ";") {
 			for _, item := range strings.Split(path, ";") {
@@ -510,5 +521,5 @@ func GetTargetRoute(uri string) (*RouteInfo, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("路由规则不存在")
+	return nil, fmt.Errorf("路由规则不存在或服务不可用")
 }
