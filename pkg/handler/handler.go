@@ -46,8 +46,10 @@ func UpdateRoute(c *gin.Context) {
 		return
 	}
 	var err1 error
+	var update bool
 	for _, item := range domain.RouteInfos {
 		if item.ServiceId == ri.ServiceId {
+			update = true
 			item.Enabled = ri.Enabled
 			if ri.Path != "" {
 				item.Path = ri.Path
@@ -81,14 +83,26 @@ func UpdateRoute(c *gin.Context) {
 			}
 		}
 	}
-	//添加路由信息
-	if err1 != nil {
+	if update && err1 != nil {
 		c.JSON(http.StatusInternalServerError, err)
+	} else {
+		checkUrl(ri, c)
+		checkPath(ri, c)
+		if ri.ExcludeUrl != "" {
+			ri.ExcludeUrls = strings.Split(ri.ExcludeUrl, ";")
+		}
+		if ri.SpecialUrl != "" {
+			ri.SpecialUrls = strings.Split(ri.SpecialUrl, ";")
+		}
+		if err1 = saveOrUpdate(ri); err1 != nil {
+			c.JSON(http.StatusInternalServerError, err)
+		}
 	}
 
 }
 
 func saveOrUpdate(ri domain.RouteInfo) error {
+	log.Info().Msgf("更新路由配置信息,%v", ri)
 	fp := domain.GetRouteInfoConfigPath()
 	file, err := os.OpenFile(fp, os.O_RDWR|os.O_SYNC, 0644)
 	if err != nil {
