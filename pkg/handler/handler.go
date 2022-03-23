@@ -86,6 +86,7 @@ func UpdateRoute(c *gin.Context) {
 	if update && err1 != nil {
 		c.JSON(http.StatusInternalServerError, err)
 	} else {
+		ri.Enabled = 1
 		checkUrl(ri, c)
 		checkPath(ri, c)
 		if ri.ExcludeUrl != "" {
