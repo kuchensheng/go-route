@@ -45,28 +45,37 @@ func UpdateRoute(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	var err1 error
-	var update bool
-	for _, item := range domain.RouteInfos {
-		if item.ServiceId == ri.ServiceId {
-			update = true
-			item.Enabled = ri.Enabled
-			if ri.Path != "" {
+	updateRoutes := func(routes []domain.RouteInfo, svcId string) []domain.RouteInfo {
+		var result []domain.RouteInfo
+		for _, item := range routes {
+			if item.ServiceId == svcId {
+				result = append(result, item)
+			}
+		}
+		return result
+	}
+	if list := updateRoutes(domain.RouteInfos, ri.ServiceId); len(list) > 0 {
+		log.Info().Msgf("更新路由规则，serviceId = %s,requestBody =%v", ri.ServiceId, string(data))
+		for _, item := range list {
+			if ri.Path != "" && len(ri.Path) > 0 {
+				log.Info().Msgf("更新了path")
 				item.Path = ri.Path
 			}
-			if ri.Url != "" {
+			if ri.Url != "" && len(ri.Url) > 0 {
+				log.Info().Msgf("更新了url")
 				item.Url = ri.Url
 			}
-			if ri.ExcludeUrl != "" {
+			if ri.ExcludeUrl != "" && len(ri.ExcludeUrl) > 0 {
+				log.Info().Msgf("更新了ExcludeUrl")
 				item.ExcludeUrl = ri.ExcludeUrl
 			}
-			if ri.SpecialUrl != "" {
+			if ri.SpecialUrl != "" && len(ri.SpecialUrl) > 0 {
 				item.SpecialUrl = ri.SpecialUrl
 			}
 			if ri.Predicates != nil {
 				item.Predicates = ri.Predicates
 			}
-			if ri.AppCode != "" {
+			if ri.AppCode != "" && len(ri.AppCode) > 0 {
 				item.AppCode = ri.AppCode
 			}
 			item.UpdateTime = time.Now().Format(time.RFC3339)
@@ -78,14 +87,13 @@ func UpdateRoute(c *gin.Context) {
 			if item.SpecialUrl != "" {
 				item.SpecialUrls = strings.Split(ri.SpecialUrl, ";")
 			}
-			if err1 = saveOrUpdate(item); err1 != nil {
+			if err1 := saveOrUpdate(item); err1 != nil {
+				c.JSON(http.StatusInternalServerError, err)
 				break
 			}
 		}
-	}
-	if update && err1 != nil {
-		c.JSON(http.StatusInternalServerError, err)
 	} else {
+		log.Info().Msgf("新增路由规则")
 		ri.Enabled = 1
 		checkUrl(ri, c)
 		checkPath(ri, c)
@@ -95,7 +103,7 @@ func UpdateRoute(c *gin.Context) {
 		if ri.SpecialUrl != "" {
 			ri.SpecialUrls = strings.Split(ri.SpecialUrl, ";")
 		}
-		if err1 = saveOrUpdate(ri); err1 != nil {
+		if err1 := saveOrUpdate(ri); err1 != nil {
 			c.JSON(http.StatusInternalServerError, err)
 		}
 	}
@@ -183,7 +191,7 @@ func checkPath(ri domain.RouteInfo, c *gin.Context) {
 	if !(strings.HasSuffix(ri.Path, "/*") || strings.HasSuffix(ri.Path, "/**")) {
 		c.JSON(http.StatusBadRequest, exception.BusinessException{
 			Code:    1040002,
-			Message: "url必须以/*或/**结尾",
+			Message: "path必须以/*或/**结尾",
 		})
 		return
 	}
