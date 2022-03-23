@@ -8,6 +8,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	cache2 "github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
@@ -51,8 +52,8 @@ type RouteInfo struct {
 	AppCode     string   `json:"appCode"`
 	Predicates  []string `json:"predicates"`
 	//Type returns route type,
-	Type   int `json:"type"`
-	Enable int `json:"enabled"`
+	Type    int `json:"type"`
+	Enabled int `json:"enabled"`
 }
 
 type DBRouteInfo struct {
@@ -65,7 +66,7 @@ type DBRouteInfo struct {
 	SpecialUrl *string `db:"special_url"`
 	CreateTime *string `db:"create_time"`
 	UpdateTime *string `db:"update_time"`
-	Enable     *int    `db:"enabled"`
+	Enabled    *int    `db:"enabled"`
 }
 
 func B2S(bs []uint8) string {
@@ -83,7 +84,7 @@ func db2RouteInfo(route DBRouteInfo) (*RouteInfo, error) {
 	if route.Path == nil {
 		return nil, errors.New("path为空")
 	}
-	r := &RouteInfo{Enable: 1}
+	r := &RouteInfo{Enabled: 1}
 	data, err := json.Marshal(route)
 	if err != nil {
 		return nil, err
@@ -393,7 +394,6 @@ func InitRouteInfo() {
 		}
 		if len(ris) > 0 {
 			//获取appCode
-
 			serviceIdCodeMap := getServiceIdCodeMap()
 			//合并同类项,以ris为准
 			for _, item := range ris {
@@ -427,7 +427,7 @@ func InitRouteInfo() {
 				newRouteInfos = append(newRouteInfos, v)
 			}
 			RouteInfos = newRouteInfos
-			InitRouter(newRouteInfos)
+			//InitRouter(newRouteInfos)
 		}
 
 	}
@@ -501,22 +501,29 @@ func getServiceIdCodeMap() map[string]string {
 
 }
 
+var cache = cache2.New(1*time.Minute, 1*time.Minute)
+
 //GetTargetRoute 根据uri解析查找目标服务,这里是clientRecovery
 func GetTargetRoute(uri string) (*RouteInfo, error) {
+	if ri, ok := cache.Get(uri); ok {
+		return ri.(*RouteInfo), nil
+	}
 	// 根据uri解析到目标路由服务
 	for _, route := range RouteInfos {
-		if route.Enable != 1 {
+		if route.Enabled != 1 {
 			continue
 		}
 		path := route.Path
 		if strings.Contains(path, ";") {
 			for _, item := range strings.Split(path, ";") {
 				if utils.Match(uri, item) {
+					cache.Set(uri, &route, 1*time.Minute)
 					return &route, nil
 				}
 			}
 		} else {
 			if utils.Match(uri, path) {
+				cache.Set(uri, &route, 1*time.Minute)
 				return &route, nil
 			}
 		}
