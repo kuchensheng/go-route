@@ -103,7 +103,7 @@ func newDefaultConf() *AppServerConf {
 			}(struct {
 				Level                string
 				CallerSkipFrameCount uint16
-			}{Level: "INFO", CallerSkipFrameCount: 8}),
+			}{Level: "INFO", CallerSkipFrameCount: 6}),
 			Limit:      512,
 			Compatible: false,
 		},
@@ -126,6 +126,7 @@ func init() {
 	ApplicationConfig.readApplicationYaml("")
 	act := ApplicationConfig.Server.Profile.Active
 	if act != "" {
+		fmt.Println("act=", act)
 		ApplicationConfig.readApplicationYaml(act)
 	}
 

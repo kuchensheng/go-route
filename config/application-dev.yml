@@ -1,6 +1,10 @@
 server:
   port: 31000
   limit: 512
+  compatible: false
+  logging:
+    level: info
+    caller_skip_frame_count: 2
 redis:
   addrs:
     - redis-service:26379

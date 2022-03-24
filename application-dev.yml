@@ -4,6 +4,7 @@ server:
   compatible: false
   logging:
     caller_skip_frame_count: 2
+    level: info
 redis:
   addrs:
     - redis-service:26379
