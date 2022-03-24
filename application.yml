@@ -1,7 +1,7 @@
 server:
   port: 31000
   logging:
-    level: info
+    level: warn
   limit: 512
 redis:
   addrs:

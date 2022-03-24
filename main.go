@@ -13,9 +13,11 @@ import (
 	"isc-route-service/pkg/proxy"
 	"os"
 	"os/exec"
+	"time"
 )
 
 func main() {
+	start := time.Now().UnixMilli()
 	port := flag.Int("port", 31000, "http路由服务启动端口号,默认31000")
 	//tcpPort := flag.Int("tcpPort", 31080, "tcp路由服务启动端口号,默认31080")
 	//udpPort := flag.String("updPort", "31053", "tcp路由服务启动端口号,默认31053")
@@ -86,7 +88,7 @@ func main() {
 	if p != 0 {
 		pr = p
 	}
-	log.Info().Msgf("服务启动占用端口，%d", pr)
+	log.Warn().Msgf("服务启动占用端口 %d,耗时 %dms", pr, time.Now().UnixMilli()-start)
 	err = router.Run(fmt.Sprintf(":%d", pr))
 	if err != nil {
 		log.Fatal().Msgf("unable to start server due to: %v", err)

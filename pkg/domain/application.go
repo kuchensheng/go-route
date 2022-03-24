@@ -61,7 +61,8 @@ type ServerConf struct {
 	//Logging server's log config
 	Logging struct {
 		//Level log's level by all comparable types(debug,info,warn,error,fatal,panic,trace)
-		Level string `yaml:"level"`
+		Level                string `yaml:"level"`
+		CallerSkipFrameCount uint16 `yaml:"caller_skip_frame_count"`
 	} `yaml:"logging"`
 	//Limit server's requests per second,default value is 512/s
 	Limit   int `yaml:"limit"`
@@ -97,8 +98,12 @@ func newDefaultConf() *AppServerConf {
 			Name:   "isc-route-service",
 			Module: "route",
 			Logging: struct {
-				Level string `yaml:"level"`
-			}(struct{ Level string }{Level: "INFO"}),
+				Level                string `yaml:"level"`
+				CallerSkipFrameCount uint16 `yaml:"caller_skip_frame_count"`
+			}(struct {
+				Level                string
+				CallerSkipFrameCount uint16
+			}{Level: "INFO", CallerSkipFrameCount: 8}),
 			Limit:      512,
 			Compatible: false,
 		},
@@ -124,7 +129,7 @@ func init() {
 		ApplicationConfig.readApplicationYaml(act)
 	}
 
-	InitLog()
+	InitLog(ApplicationConfig.Server.Logging.CallerSkipFrameCount)
 }
 
 //ReadProfileYaml 读取application.yml文件，如果Profile不为空,或者server.profile.active不为空，则再次读取对应的application-${profile}.yml
@@ -176,7 +181,7 @@ var loggerError *zerolog.Logger
 var loggerOther *zerolog.Logger
 
 //InitLog 初始化日志设置
-func InitLog() {
+func InitLog(callerSkipFrameCount uint16) {
 	InitWriter()
 	initLogDir()
 
@@ -191,7 +196,7 @@ func InitLog() {
 		}
 		zerolog.SetGlobalLevel(l)
 	}
-	zerolog.CallerSkipFrameCount = 2
+	zerolog.CallerSkipFrameCount = int(callerSkipFrameCount)
 	zerolog.TimeFieldFormat = time.RFC3339
 
 	out := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05.000", NoColor: true}

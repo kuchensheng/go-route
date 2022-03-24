@@ -2,6 +2,8 @@ server:
   port: 31000
   limit: 512
   compatible: false
+  logging:
+    caller_skip_frame_count: 2
 redis:
   addrs:
     - redis-service:26379
@@ -10,7 +12,7 @@ redis:
 loki:
   host: http://loki-service:3100
 rc:
-  host: http://10.30.30.78:34200
+  host: http://192.168.10.220:34200
   relevance: "/api/rc-application/application/service/relevance"
 
 mysql:

@@ -439,17 +439,19 @@ func InitRouteInfo() {
 	}()
 }
 
-type relevanceType struct {
+type RelevanceType struct {
 	AppCode  string `json:"appCode"`
 	Services []struct {
 		ServiceId   string `json:"serviceId"`
 		ServiceName string `json:"serviceName"`
+		Type        string `json:"type"`
+		Version     string `json:"version"`
 	} `json:"services"`
 }
 type relevanceInfo struct {
-	Code    string          `json:"code"`
+	Code    uint            `json:"code"`
 	Message string          `json:"message"`
-	Data    []relevanceType `json:"data"`
+	Data    []RelevanceType `json:"data"`
 }
 
 func getServiceIdCodeMap() map[string]string {
@@ -469,9 +471,10 @@ func getServiceIdCodeMap() map[string]string {
 	if relevance == "" {
 		relevance = "/api/rc-application/application/service/relevance"
 	}
-	if strings.HasPrefix(relevance, "/") {
+	if !strings.HasPrefix(relevance, "/") {
 		relevance = "/" + relevance
 	}
+	log.Debug().Msgf("请求地址:%s", fmt.Sprintf("%s%s", rh, relevance))
 	resp, err := client.Get(fmt.Sprintf("%s%s", rh, relevance))
 	if err != nil {
 		log.Error().Stack().Msgf("注册中心服务调用异常:%v", err)
@@ -486,7 +489,7 @@ func getServiceIdCodeMap() map[string]string {
 	}
 	var info relevanceInfo
 	if err = json.Unmarshal(data, &info); err != nil {
-		log.Error().Stack().Msgf("注册中心响应数据解析异常：%v", err)
+		log.Error().Stack().Msgf("注册中心响应数据解析异常：%v,获取到响应体内容:%s", err, string(data))
 		return result
 	}
 	types := info.Data
