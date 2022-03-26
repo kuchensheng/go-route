@@ -3,19 +3,51 @@
 package main
 
 import (
+	"C"
 	"context"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	plugins "isc-route-service/plugins/common"
-
 	"net/http"
+	"unsafe"
 )
 
-type ValidIntA struct {
+type WindowPlugin struct {
 }
 
+var p = WindowPlugin{}
+
 //Valid access token 验证
-func (a ValidIntA) valid(req *http.Request, target []byte) error {
+//export Valid
+func Valid(r *C.int, t []C.char) error {
+	req := (*http.Request)(unsafe.Pointer(r))
+	fmt.Println(req, t)
+	target := *(*[]byte)(unsafe.Pointer(&t))
+	return p.Handler(req, target)
+}
+
+func main() {
+	//h := make(map[string][]string)
+	//h["isc-api-version"] = []string{"3.0"}
+	//r := http.Request{
+	//	Header: h,
+	//	URL: &url.URL{
+	//		Scheme: "http",
+	//		Host:   "www.techcrunch.com",
+	//		Path:   "/api/common/test",
+	//	},
+	//}
+	//ptr := &r
+	//println("指针地址",ptr,reflect.TypeOf(ptr).String())
+	//fmt.Println(*ptr)
+	//c := []C.char{'1','2','a'}
+	//intPtr := unsafe.Pointer(ptr)
+	//addr := (*C.int)(intPtr)
+	//println("addr ",addr)
+	//Valid(addr,c)
+}
+
+func (a WindowPlugin) Handler(req *http.Request, target []byte) error {
 	uri := req.URL.Path
 	if !plugins.IsInSlice(ac.AccessToken.urls, uri) {
 		return nil
@@ -37,5 +69,4 @@ func (a ValidIntA) valid(req *http.Request, target []byte) error {
 		}
 	}
 	return nil
-
 }

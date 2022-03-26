@@ -27,6 +27,6 @@ func init() {
 	redisClient = *plugins.InitRedisClient("accessToken/conf.yml")
 }
 
-type PluginIntf interface {
-	valid(req *http.Request, target []byte) error
+type Plugin interface {
+	Handler(req *http.Request, target []byte) error
 }
