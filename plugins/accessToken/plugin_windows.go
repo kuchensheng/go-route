@@ -6,13 +6,36 @@ import (
 	"C"
 	"context"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 	plugins "isc-route-service/plugins/common"
 	"net/http"
 	"unsafe"
 )
 
+var IscAccessTokenKey = "isc-access-token"
+var GatewayApiServiceAccessTokenRedisKeyPrefix = "gateway:api:service:access:token:"
+var ac = &AccessTokeConf{}
+
+type AccessTokeConf struct {
+	AccessToken struct {
+		urls []string `yaml:"urls"`
+	} `yaml:"access-token"`
+}
+
+var RedisClient redis.Client
+
+func init() {
+	//这里做初始化操作
+	plugins.ReadYamlToStruct("accessToken/conf.yml", ac)
+	if len(ac.AccessToken.urls) == 0 {
+		ac.AccessToken.urls = []string{"/api/common"}
+	}
+	RedisClient = *plugins.InitRedisClient("accessToken/conf.yml")
+}
+
 type WindowPlugin struct {
+	redis.Client
 }
 
 var p = WindowPlugin{}
@@ -63,7 +86,7 @@ func (a WindowPlugin) Handler(req *http.Request, target []byte) error {
 		return err
 	} else {
 		//todo 需要连接redis
-		value := redisClient.Get(context.Background(), fmt.Sprintf("%s%s", GatewayApiServiceAccessTokenRedisKeyPrefix, iscAccessToken)).Val()
+		value := RedisClient.Get(context.Background(), fmt.Sprintf("%s%s", GatewayApiServiceAccessTokenRedisKeyPrefix, iscAccessToken)).Val()
 		if value == "" {
 			return err
 		}
