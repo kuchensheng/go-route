@@ -11,8 +11,6 @@ import (
 	"isc-route-service/pkg/domain"
 	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/proxy"
-	"os"
-	"os/exec"
 	"time"
 )
 
@@ -27,27 +25,27 @@ func main() {
 
 	flag.Parse()
 	log.Info().Msgf("拷贝plugins和resources目录到data目录下")
-	if _, err := os.Stat("data"); err != nil {
-		if os.IsNotExist(err) {
-			err = os.Mkdir("data", os.ModeDir)
-		}
-	}
-	mvDir := func(dir string) error {
-		cmd := exec.Command("cp", "-r", "-n", dir, "data/")
-		log.Info().Msgf("执行命令：%s", cmd.String())
-		return cmd.Run()
-
-	}
-	err := mvDir("files/.")
-	if err != nil {
-		log.Error().Msgf("resource目录拷贝异常%v", err)
-		return
-	}
-	err = mvDir("ld/.")
-	if err != nil {
-		log.Error().Msgf("plugins目录拷贝异常%v", err)
-		return
-	}
+	//if _, err := os.Stat("data"); err != nil {
+	//	if os.IsNotExist(err) {
+	//		err = os.Mkdir("data", os.ModeDir)
+	//	}
+	//}
+	//mvDir := func(dir string) error {
+	//	cmd := exec.Command("cp", "-r", "-n", dir, "data/")
+	//	log.Info().Msgf("执行命令：%s", cmd.String())
+	//	return cmd.Run()
+	//
+	//}
+	//err := mvDir("files/.")
+	//if err != nil {
+	//	log.Error().Msgf("resource目录拷贝异常%v", err)
+	//	return
+	//}
+	//err = mvDir("ld/.")
+	//if err != nil {
+	//	log.Error().Msgf("plugins目录拷贝异常%v", err)
+	//	return
+	//}
 
 	//读取指定配置文件信息
 	domain.ReadProfileYaml()
@@ -89,7 +87,7 @@ func main() {
 		pr = p
 	}
 	log.Warn().Msgf("服务启动占用端口 %d,耗时 %dms", pr, time.Now().UnixMilli()-start)
-	err = router.Run(fmt.Sprintf(":%d", pr))
+	err := router.Run(fmt.Sprintf(":%d", pr))
 	if err != nil {
 		log.Fatal().Msgf("unable to start server due to: %v", err)
 	}

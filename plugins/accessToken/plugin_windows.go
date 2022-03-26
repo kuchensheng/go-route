@@ -1,10 +1,21 @@
-//go:build (linux && cgo) || (darwin && cgo) || (freebsd && cgo)
-// +build linux,cgo darwin,cgo freebsd,cgo
+//go:build windows
 
 package main
 
+import (
+	"context"
+	"fmt"
+	"github.com/rs/zerolog/log"
+	plugins "isc-route-service/plugins/common"
+
+	"net/http"
+)
+
+type ValidIntA struct {
+}
+
 //Valid access token 验证
-func Valid(req *http.Request, target []byte) error {
+func (a ValidIntA) valid(req *http.Request, target []byte) error {
 	uri := req.URL.Path
 	if !plugins.IsInSlice(ac.AccessToken.urls, uri) {
 		return nil

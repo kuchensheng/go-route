@@ -204,9 +204,9 @@ func InitLog(callerSkipFrameCount uint16) {
 	out.FormatLevel = func(i interface{}) string {
 		return strings.ToUpper(fmt.Sprintf(" [%s] [%-2s]", ApplicationConfig.Server.Name, i))
 	}
-	sw := &syslogWriter{}
-	writer := zerolog.MultiLevelWriter(out, zerolog.MultiLevelWriter(zerolog.SyslogLevelWriter(sw)))
-	log.Logger = log.Logger.Output(writer).With().Caller().Logger()
+	//sw := &syslogWriter{}
+	//writer := zerolog.MultiLevelWriter(out, zerolog.MultiLevelWriter(zerolog.SyslogLevelWriter(sw)))
+	log.Logger = log.Logger.Output(out).With().Caller().Logger()
 }
 
 //getWriter 根据参数logDir,fileName 确定输出流
