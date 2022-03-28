@@ -1,6 +1,7 @@
 // Package plugins 登陆鉴权
 package main
 
+import "C"
 import (
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unsafe"
 )
 
 var Params interface{}
@@ -107,7 +109,10 @@ func getToken(req http.Request) string {
 }
 
 //Valid 函数则是我们需要在调用方显式查找的symbol
-func Valid(Req *http.Request, target []byte) error {
+//export Valid
+func Valid(r *C.int, t []C.char) error {
+	Req := (*http.Request)(unsafe.Pointer(r))
+	target := *(*[]byte)(unsafe.Pointer(&t))
 	p := RouteInfo{}
 	err := json.Unmarshal(target, &p)
 	if err != nil {

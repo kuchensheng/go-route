@@ -89,7 +89,7 @@ func Forward(c *gin.Context) {
 		if err != nil {
 			c.JSON(404, exception.BusinessException{
 				Code:    1040404,
-				Message: "路由规则不存在",
+				Message: err.Error(),
 			})
 			ch <- err
 		} else {
@@ -176,10 +176,13 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 	}
 	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
 		//异常处理器
+		log.Error().Stack().Msgf("服务%s调用异常,%v", request.Host, err)
 		w.WriteHeader(http.StatusOK)
+		//modified by kucs 错误提示文案优化处理
+		msg := fmt.Sprintf("服务%s调用异常,请前往控制台查看详情", request.Host)
 		writeContent := exception.BusinessException{
 			Code:    1040502,
-			Message: fmt.Sprintf("远程调用异常:%v", err.Error()),
+			Message: msg,
 			Data:    err,
 		}
 		data, _ := json.Marshal(writeContent)

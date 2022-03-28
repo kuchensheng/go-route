@@ -13,7 +13,7 @@ redis:
 loki:
   host: http://loki-service:3100
 rc:
-  host: http://192.168.10.220:34200
+  host: http://192.168.10.109:34200
   relevance: "/api/rc-application/application/service/relevance"
 
 mysql:

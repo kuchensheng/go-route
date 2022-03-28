@@ -25,6 +25,9 @@ func Match(src, target string) bool {
 	if len(targetPaths) > len(srcPaths) {
 		return false
 	}
+	if strings.HasPrefix(src, target) {
+		return true
+	}
 	for idx, p := range targetPaths {
 		if p == "" {
 			continue

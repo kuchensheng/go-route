@@ -2,6 +2,6 @@ redis:
   Addr: redis-service
   Password: ZljIsyscore123
   DB: 7
-access-token:
+access_token:
   urls :
-    - "/api/common"
+    - "/api/common/**"

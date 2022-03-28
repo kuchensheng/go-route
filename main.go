@@ -11,6 +11,9 @@ import (
 	"isc-route-service/pkg/domain"
 	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/proxy"
+	"os"
+	"os/exec"
+	"runtime"
 	"time"
 )
 
@@ -25,30 +28,32 @@ func main() {
 
 	flag.Parse()
 	log.Info().Msgf("拷贝plugins和resources目录到data目录下")
-	//if _, err := os.Stat("data"); err != nil {
-	//	if os.IsNotExist(err) {
-	//		err = os.Mkdir("data", os.ModeDir)
-	//	}
-	//}
-	//mvDir := func(dir string) error {
-	//	cmd := exec.Command("cp", "-r", "-n", dir, "data/")
-	//	log.Info().Msgf("执行命令：%s", cmd.String())
-	//	return cmd.Run()
-	//
-	//}
-	//err := mvDir("files/.")
-	//if err != nil {
-	//	log.Error().Msgf("resource目录拷贝异常%v", err)
-	//	return
-	//}
-	//err = mvDir("ld/.")
-	//if err != nil {
-	//	log.Error().Msgf("plugins目录拷贝异常%v", err)
-	//	return
-	//}
+	if runtime.GOOS != "windows" {
+		if _, err := os.Stat("data"); err != nil {
+			if os.IsNotExist(err) {
+				err = os.Mkdir("data", os.ModeDir)
+			}
+		}
+		mvDir := func(dir string) error {
+			cmd := exec.Command("cp", "-r", "-n", dir, "data/")
+			log.Info().Msgf("执行命令：%s", cmd.String())
+			return cmd.Run()
 
+		}
+		err := mvDir("files/.")
+		if err != nil {
+			log.Error().Msgf("resource目录拷贝异常%v", err)
+			return
+		}
+		err = mvDir("ld/.")
+		if err != nil {
+			log.Error().Msgf("plugins目录拷贝异常%v", err)
+			return
+		}
+	}
 	//读取指定配置文件信息
-	domain.ReadProfileYaml()
+	//domain.ReadProfileYaml()
+	domain.InitApplication()
 	//初始加载路由规则
 	domain.InitRouteInfo()
 	//初始化加载动态库信息

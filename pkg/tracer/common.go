@@ -5,7 +5,6 @@ import (
 	idworker "github.com/gitstliu/go-id-worker"
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog/log"
-	"isc-route-service/pkg/domain"
 	"net"
 	"net/http"
 	"os"
@@ -76,10 +75,10 @@ type Tracer struct {
 var currWorker = &idworker.IdWorker{}
 var Client *LokiClient
 
-func InitLokiClient() {
+func InitLokiClient(h string) {
 	host := "http://loki-service:3100"
-	if domain.ApplicationConfig.Loki.Host != "" {
-		host = domain.ApplicationConfig.Loki.Host
+	if h != "" {
+		host = h
 	}
 	c, err := CreateClient(host, 512, 30*time.Second)
 	if err != nil {
@@ -91,11 +90,11 @@ func InitLokiClient() {
 var SEQ atomic.Value
 var MAX = 8000
 
-func init() {
+func InitTracer(cfg string) {
 	log.Info().Msgf("初始化信息跟踪动态库")
 	SEQ.Store(1)
 	currWorker.InitIdWorker(1500, 1)
-	InitLokiClient()
+	InitLokiClient(cfg)
 	c := cron.New()
 	c.AddFunc("* * * * * ?", func() {
 		//上传到loki中

@@ -99,7 +99,8 @@ func init() {
 }
 
 //Valid 函数则是我们需要在调用方显式查找的symbol
-func Valid(req *http.Request, target []byte) error {
+//export Valid
+func Valid() error {
 	if hasLic {
 		return nil
 	}

@@ -11,6 +11,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
+	"isc-route-service/pkg/tracer"
 	"os"
 	"path/filepath"
 	"strings"
@@ -120,17 +121,24 @@ func newDefaultConf() *AppServerConf {
 	}
 }
 
-func init() {
+func InitApplication() {
 	//初始化ApplicationConf
 	ApplicationConfig = newDefaultConf()
 	ApplicationConfig.readApplicationYaml("")
 	act := ApplicationConfig.Server.Profile.Active
-	if act != "" {
-		fmt.Println("act=", act)
-		ApplicationConfig.readApplicationYaml(act)
+	if act == "" {
+		act = Profile
 	}
+	if act == "" {
+		act = "default"
+	}
+	fmt.Println("act=", act)
+	ApplicationConfig.readApplicationYaml(act)
 
 	InitLog(ApplicationConfig.Server.Logging.CallerSkipFrameCount)
+	if ApplicationConfig.Loki.Enable {
+		tracer.InitTracer(ApplicationConfig.Loki.Host)
+	}
 }
 
 //ReadProfileYaml 读取application.yml文件，如果Profile不为空,或者server.profile.active不为空，则再次读取对应的application-${profile}.yml

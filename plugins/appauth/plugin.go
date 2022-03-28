@@ -1,5 +1,6 @@
 package main
 
+import "C"
 import (
 	"bytes"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	. "isc-route-service/plugins/common"
 	"net/http"
 	"time"
+	"unsafe"
 )
 
 var c *cache.Cache
@@ -66,7 +68,10 @@ func init() {
 }
 
 //Valid 函数则是我们需要在调用方显式查找的symbol
-func Valid(Req *http.Request, target []byte) error {
+//export Valid
+func Valid(r *C.int, t []C.char) error {
+	Req := (*http.Request)(unsafe.Pointer(r))
+	target := *(*[]byte)(unsafe.Pointer(&t))
 	log.Debug().Msg("应用授权校验")
 	p := RouteInfo{}
 	err := json.Unmarshal(target, &p)
@@ -129,4 +134,8 @@ func Valid(Req *http.Request, target []byte) error {
 func isSuperAdmin(Req *http.Request) bool {
 	superAdmin := Req.Header.Get("isc-tenant-admin")
 	return superAdmin == "" || superAdmin == "true"
+}
+
+func main() {
+
 }

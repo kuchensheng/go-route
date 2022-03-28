@@ -1,15 +1,14 @@
-//go:build (linux && cgo) || (darwin && cgo) || (freebsd && cgo)
-// +build linux,cgo darwin,cgo freebsd,cgo
-
 package main
 
 import (
+	"C"
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 	plugins "isc-route-service/plugins/common"
 	"net/http"
+	"unsafe"
 )
 
 var IscAccessTokenKey = "isc-access-token"
@@ -34,7 +33,10 @@ func init() {
 }
 
 //Valid access token 验证
-func Valid(req *http.Request, target []byte) error {
+//export Valid
+func Valid(r *C.int, t []C.char) error {
+	req := (*http.Request)(unsafe.Pointer(r))
+	//target := *(*[]byte)(unsafe.Pointer(&t))
 	uri := req.URL.Path
 	if !plugins.IsInSlice(ac.AccessToken.urls, uri) {
 		return nil
@@ -56,5 +58,9 @@ func Valid(req *http.Request, target []byte) error {
 		}
 	}
 	return nil
+
+}
+
+func main() {
 
 }

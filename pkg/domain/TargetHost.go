@@ -513,23 +513,26 @@ func GetTargetRoute(uri string) (*RouteInfo, error) {
 	}
 	// 根据uri解析到目标路由服务
 	for _, route := range RouteInfos {
-		if route.Enabled != 1 {
-			continue
-		}
 		path := route.Path
 		if strings.Contains(path, ";") {
 			for _, item := range strings.Split(path, ";") {
 				if utils.Match(uri, item) {
+					if route.Enabled != 1 {
+						return nil, errors.New(fmt.Sprintf("%s服务暂不可用，请查看服务是否正常", route.ServiceId))
+					}
 					cache.Set(uri, &route, 1*time.Minute)
 					return &route, nil
 				}
 			}
 		} else {
 			if utils.Match(uri, path) {
+				if route.Enabled != 1 {
+					return nil, errors.New(fmt.Sprintf("%s服务暂不可用，请查看服务是否正常", route.ServiceId))
+				}
 				cache.Set(uri, &route, 1*time.Minute)
 				return &route, nil
 			}
 		}
 	}
-	return nil, fmt.Errorf("路由规则不存在或服务不可用")
+	return nil, fmt.Errorf("路由规则不存在")
 }
