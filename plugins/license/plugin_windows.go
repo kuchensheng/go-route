@@ -1,9 +1,9 @@
-//go:build (linux && cgo) || (darwin && cgo) || (freebsd && cgo)
-// +build linux,cgo darwin,cgo freebsd,cgo
+//go:build windows
 
 // Package license OS鉴权插件
 package main
 
+import "C"
 import (
 	"encoding/json"
 	"fmt"
@@ -102,7 +102,7 @@ func init() {
 
 //Valid 函数则是我们需要在调用方显式查找的symbol
 //export Valid
-func Valid(req *http.Request, target []byte) error {
+func Valid(r *C.int, t []C.char) error {
 	if hasLic {
 		return nil
 	}

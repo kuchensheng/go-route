@@ -176,10 +176,10 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 	}
 	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
 		//异常处理器
-		log.Error().Stack().Msgf("服务%s调用异常,%v", request.Host, err)
+		log.Error().Stack().Msgf("服务%s调用异常,%v", target.ServiceId, err)
 		w.WriteHeader(http.StatusOK)
 		//modified by kucs 错误提示文案优化处理
-		msg := fmt.Sprintf("服务%s调用异常,请前往控制台查看详情", request.Host)
+		msg := fmt.Sprintf("服务%s调用异常,请前往控制台查看详情", target.ServiceId)
 		writeContent := exception.BusinessException{
 			Code:    1040502,
 			Message: msg,

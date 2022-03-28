@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"isc-route-service/pkg/domain"
 	"net/http"
-	"unsafe"
 )
 
 //MiddleWare 全局拦截器
@@ -34,9 +33,7 @@ func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 			}
 		} else {
 			data, _ := json.Marshal(pp.RouteInfo)
-			r := (*C.int)(unsafe.Pointer(c.Request))
-			t := ([]C.char)(unsafe.Pointer(&data))
-			runtimeError = method.(func(*C.int, []C.char) error)(r, t)
+			runtimeError = method.(func(*http.Request, []byte) error)(c.Request, data)
 			if x := recover(); x != nil {
 				runtimeError = x.(error)
 			}

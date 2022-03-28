@@ -1,9 +1,9 @@
 TAG=${1:-latest}
 echo "$TAG"
-export GO111MODULE ON \
+export GO111MODULE ON
 
 echo "构建插件"
-cd ../plugins \
+cd ../plugins
 
 # shellcheck disable=SC2045
 for dir in $(ls ./)
