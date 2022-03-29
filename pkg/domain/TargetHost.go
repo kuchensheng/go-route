@@ -52,8 +52,8 @@ type RouteInfo struct {
 	AppCode     string   `json:"appCode"`
 	Predicates  []string `json:"predicates"`
 	//Type returns route type,
-	Type    int `json:"type"`
-	Enabled int `json:"enabled"`
+	Type    int  `json:"type"`
+	Enabled *int `json:"enabled"`
 }
 
 type DBRouteInfo struct {
@@ -84,7 +84,8 @@ func db2RouteInfo(route DBRouteInfo) (*RouteInfo, error) {
 	if route.Path == nil {
 		return nil, errors.New("path为空")
 	}
-	r := &RouteInfo{Enabled: 1}
+	enabled := 1
+	r := &RouteInfo{Enabled: &enabled}
 	data, err := json.Marshal(route)
 	if err != nil {
 		return nil, err
@@ -517,7 +518,7 @@ func GetTargetRoute(uri string) (*RouteInfo, error) {
 		if strings.Contains(path, ";") {
 			for _, item := range strings.Split(path, ";") {
 				if utils.Match(uri, item) {
-					if route.Enabled != 1 {
+					if *route.Enabled != 1 {
 						return nil, errors.New(fmt.Sprintf("%s服务暂不可用，请查看服务是否正常", route.ServiceId))
 					}
 					cache.Set(uri, &route, 1*time.Minute)
@@ -526,7 +527,7 @@ func GetTargetRoute(uri string) (*RouteInfo, error) {
 			}
 		} else {
 			if utils.Match(uri, path) {
-				if route.Enabled != 1 {
+				if *route.Enabled != 1 {
 					return nil, errors.New(fmt.Sprintf("%s服务暂不可用，请查看服务是否正常", route.ServiceId))
 				}
 				cache.Set(uri, &route, 1*time.Minute)

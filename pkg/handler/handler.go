@@ -57,7 +57,11 @@ func UpdateRoute(c *gin.Context) {
 	if list := updateRoutes(domain.RouteInfos, ri.ServiceId); len(list) > 0 {
 		log.Info().Msgf("更新路由规则，serviceId = %s,requestBody =%v", ri.ServiceId, string(data))
 		for _, item := range list {
-			item.Enabled = ri.Enabled
+			if ri.Enabled != nil {
+				enabled := *ri.Enabled
+				item.Enabled = &enabled
+			}
+
 			if ri.Path != "" && len(ri.Path) > 0 {
 				log.Info().Msgf("更新了path")
 				item.Path = ri.Path
@@ -95,7 +99,7 @@ func UpdateRoute(c *gin.Context) {
 		}
 	} else {
 		log.Info().Msgf("新增路由规则")
-		ri.Enabled = 1
+		*ri.Enabled = 1
 		checkUrl(ri, c)
 		checkPath(ri, c)
 		if ri.ExcludeUrl != "" {
