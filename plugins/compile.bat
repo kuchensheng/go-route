@@ -1,1 +1,0 @@
-go build -buildmode=c-shared -o test.dll .\testplugin_windows.go
