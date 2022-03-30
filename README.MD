@@ -44,6 +44,9 @@ isc-route-service是物联网操作系统中一种高性能的请求代理方法
 - 暂不支持非http协议转发和http协议转换为其他RPC协议
 - 支持自定义登陆鉴权白名单
 - 支持自定义超时延迟白名单，延迟到5M
+### v1.0.1
+#### 版本特性
+- 增强：支持tcp请求转发
 #### 可用镜像
 ```shell
 docker pull 10.30.30.22:9080/isyscore/isc-route-service:v4.0.0.20220307-dev

@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -150,6 +151,9 @@ func GetRouteInfoConfigPath() string {
 			if !ApplicationConfig.Server.Compatible {
 				mvDir := func(dir string) error {
 					cmd := exec.Command("cp", "-r", "-n", dir, "data/resources/routeInfo.json")
+					if runtime.GOOS == "windows" {
+						cmd = exec.Command("cmd", "copy", dir, ".\\data\\resources\\routeInfo.json")
+					}
 					log.Info().Msgf("执行命令：%s", cmd.String())
 					return cmd.Run()
 				}

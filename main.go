@@ -11,6 +11,7 @@ import (
 	"isc-route-service/pkg/domain"
 	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/proxy"
+	"isc-route-service/pkg/proxy/tcp"
 	"os"
 	"os/exec"
 	"runtime"
@@ -20,7 +21,7 @@ import (
 func main() {
 	start := time.Now().UnixMilli()
 	port := flag.Int("port", 31000, "http路由服务启动端口号,默认31000")
-	//tcpPort := flag.Int("tcpPort", 31080, "tcp路由服务启动端口号,默认31080")
+	tcpPort := flag.Int("tcpPort", 31080, "tcp路由服务启动端口号,默认31080")
 	//udpPort := flag.String("updPort", "31053", "tcp路由服务启动端口号,默认31053")
 	flag.StringVar(&domain.ConfigPath, "conf", "", "路由规则定义文件地址,默认/home/isc-route-service/data/resources/routeInfo.json")
 	flag.StringVar(&domain.PluginConfigPath, "plugins", "", "插件信息定位文件地址，默认/home/isc-route-service/data/resources/plugins.json")
@@ -28,28 +29,36 @@ func main() {
 
 	flag.Parse()
 	log.Info().Msgf("拷贝plugins和resources目录到data目录下")
-	if runtime.GOOS != "windows" {
-		if _, err := os.Stat("data"); err != nil {
-			if os.IsNotExist(err) {
-				err = os.Mkdir("data", os.ModeDir)
-			}
+	if _, err := os.Stat("data"); err != nil {
+		if os.IsNotExist(err) {
+			err = os.Mkdir("data", os.ModeDir)
 		}
-		mvDir := func(dir string) error {
-			cmd := exec.Command("cp", "-r", "-n", dir, "data/")
-			log.Info().Msgf("执行命令：%s", cmd.String())
-			return cmd.Run()
+	}
+	if _, err := os.Stat("ld"); err != nil {
+		if os.IsNotExist(err) {
+			err = os.Mkdir("ld", os.ModeDir)
+		}
+	}
+	mvDir := func(dir string) error {
+		cmd := exec.Command("cp", "-r", "-n", dir+"/.", "data/")
+		if runtime.GOOS == "windows" {
+			pwd, _ := os.Getwd()
+			cmdContent := fmt.Sprintf(`xcopy.exe %s\%s\ %s\data\ /s`, pwd, dir, pwd)
+			cmd = exec.Command("cmd", "/C", cmdContent)
+		}
+		log.Info().Msgf("执行命令：%s", cmd.String())
+		return cmd.Run()
 
-		}
-		err := mvDir("files/.")
-		if err != nil {
-			log.Error().Msgf("resource目录拷贝异常%v", err)
-			return
-		}
-		err = mvDir("ld/.")
-		if err != nil {
-			log.Error().Msgf("plugins目录拷贝异常%v", err)
-			return
-		}
+	}
+	err := mvDir("files")
+	if err != nil {
+		log.Error().Msgf("resource目录拷贝异常%v", err)
+		return
+	}
+	err = mvDir("ld")
+	if err != nil {
+		log.Error().Msgf("plugins目录拷贝异常%v", err)
+		return
 	}
 	//读取指定配置文件信息
 	//domain.ReadProfileYaml()
@@ -58,27 +67,7 @@ func main() {
 	domain.InitRouteInfo()
 	//初始化加载动态库信息
 	domain.InitPlugins()
-	//go func() {
-	//	log.Info().Msgf("tcp服务监听占用端口:%d", *tcpPort)
-	//	tcpListener, err := net.ListenTCP("tcp", &net.TCPAddr{Port: *tcpPort})
-	//	if err != nil {
-	//		log.Fatal().Msgf("tcp服务监听异常:%v", err)
-	//	}
-	//	for {
-	//		proxyConn, err := tcpListener.AcceptTCP()
-	//		if err != nil {
-	//			log.Error().Msgf("Unable to accept a request,error : %v", err)
-	//			continue
-	//		}
-	//		proxyConn.Write([]byte("收到了"))
-	//		log.Info().Msgf("localAddr : %v", proxyConn.LocalAddr())
-	//		log.Info().Msgf("remoteAddr : %v", proxyConn.RemoteAddr())
-	//		proxy.TCPForward(proxyConn)
-	//	}
-	//}()
-	//go func() {
-	//	log.Info().Msgf("upd服务监听占用端口：%s", *udpPort)
-	//}()
+	go tcp.StartTcp(*tcpPort)
 	gin.DefaultWriter = io.Discard
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
@@ -92,7 +81,7 @@ func main() {
 		pr = p
 	}
 	log.Warn().Msgf("服务启动占用端口 %d,耗时 %dms", pr, time.Now().UnixMilli()-start)
-	err := router.Run(fmt.Sprintf(":%d", pr))
+	err = router.Run(fmt.Sprintf(":%d", pr))
 	if err != nil {
 		log.Fatal().Msgf("unable to start server due to: %v", err)
 	}
