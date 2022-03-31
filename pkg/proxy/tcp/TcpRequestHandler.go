@@ -93,7 +93,7 @@ func getTargetConn(conn net.Conn) net.Conn {
 	}
 	if routeInfo != nil {
 		if dial, err = net.Dial("tcp", routeInfo.Url); err != nil {
-			log.Error().Msgf("redis连接失败,error %v", err)
+			log.Error().Msgf("%s连接失败,error %v", routeInfo.Url, err)
 			return nil
 		}
 	}
