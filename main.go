@@ -22,6 +22,7 @@ func main() {
 	start := time.Now().UnixMilli()
 	port := flag.Int("port", 31000, "http路由服务启动端口号,默认31000")
 	tcpPort := flag.Int("tcpPort", 31080, "tcp路由服务启动端口号,默认31080")
+	mysqlPort := flag.Int("mysqlPort", 31001, "mysql服务端口，默认31001")
 	//udpPort := flag.String("updPort", "31053", "tcp路由服务启动端口号,默认31053")
 	flag.StringVar(&domain.ConfigPath, "conf", "", "路由规则定义文件地址,默认/home/isc-route-service/data/resources/routeInfo.json")
 	flag.StringVar(&domain.PluginConfigPath, "plugins", "", "插件信息定位文件地址，默认/home/isc-route-service/data/resources/plugins.json")
@@ -68,6 +69,8 @@ func main() {
 	//初始化加载动态库信息
 	domain.InitPlugins()
 	go tcp.StartTcp(*tcpPort)
+	//开启mysql代理端口
+	go tcp.StartMysqlProxy(*mysqlPort)
 	gin.DefaultWriter = io.Discard
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
