@@ -43,7 +43,7 @@ func main() {
 		cmd := exec.Command("cp", "-r", "-n", dir+"/.", "data/")
 		if runtime.GOOS == "windows" {
 			pwd, _ := os.Getwd()
-			cmdContent := fmt.Sprintf(`xcopy.exe %s\%s\ %s\data\ /s`, pwd, dir, pwd)
+			cmdContent := fmt.Sprintf(`xcopy.exe %s\%s\ %s\data\ /D /Y /E`, pwd, dir, pwd)
 			cmd = exec.Command("cmd", "/C", cmdContent)
 		}
 		log.Info().Msgf("执行命令：%s", cmd.String())
