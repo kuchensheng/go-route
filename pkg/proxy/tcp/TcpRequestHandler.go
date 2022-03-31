@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"io"
+	"isc-route-service/pkg/domain"
 	"net"
 	"strconv"
 	"strings"
@@ -23,8 +24,13 @@ func StartMysqlProxy(port int) {
 			continue
 		}
 
+		target, err := domain.GetTargetRouteByProtocol("mysql")
+		if err != nil {
+			log.Error().Msgf("未获取到服务地址信息:%v", err)
+			conn.Write([]byte(err.Error()))
+		}
 		//连接到mysql
-		dial, err := net.Dial("tcp", "10.30.30.78:23306")
+		dial, err := net.Dial("tcp", target.Url)
 		if err != nil {
 			log.Fatal().Msgf("连接到mysql服务器异常 %v", err)
 		}
@@ -69,15 +75,25 @@ func getTargetConn(conn net.Conn) net.Conn {
 	data = data[:n]
 	println("data：\n", string(data), data)
 	var dial net.Conn
+	var routeInfo *domain.RouteInfo
 	if isRedis(data) {
-		if dial, err = net.Dial("tcp", "10.30.30.78:26379"); err != nil {
-			log.Error().Msgf("redis连接失败,error %v", err)
+		target, err := domain.GetTargetRouteByProtocol("redis")
+		if err != nil {
+			log.Error().Msgf("未获取到服务地址信息:%v", err)
 			return nil
 		}
+		routeInfo = target
 	} else if isMongoDB(data) {
-		log.Info().Msgf("是mongoDB协议")
-		if dial, err = net.Dial("tcp", "10.30.30.106:27017"); err != nil {
-			log.Error().Msgf("mongoDB连接失败,error %v", err)
+		target, err := domain.GetTargetRouteByProtocol("mongo")
+		if err != nil {
+			log.Error().Msgf("未获取到服务地址信息:%v", err)
+			return nil
+		}
+		routeInfo = target
+	}
+	if routeInfo != nil {
+		if dial, err = net.Dial("tcp", routeInfo.Url); err != nil {
+			log.Error().Msgf("redis连接失败,error %v", err)
 			return nil
 		}
 	}

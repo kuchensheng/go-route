@@ -541,3 +541,21 @@ func GetTargetRoute(uri string) (*RouteInfo, error) {
 	}
 	return nil, fmt.Errorf("路由规则不存在")
 }
+
+var cache1 = cache2.New(5*time.Minute, 1*time.Minute)
+
+func GetTargetRouteByProtocol(protocol string) (*RouteInfo, error) {
+	if ri, ok := cache1.Get(protocol); ok {
+		return ri.(*RouteInfo), nil
+	}
+	for _, route := range RouteInfos {
+		p := route.Protocol
+		if p != "" {
+			p = strings.ToLower(p)
+			if p == strings.ToLower(protocol) {
+				return &route, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("路由规则不存在")
+}
