@@ -1,5 +1,8 @@
 package domain
 
+//Package domain's plugin provide the ability to initialize plugins.
+//Note: At present,it must run on Linux operating system
+//domain's plugin will
 import (
 	"encoding/json"
 	"github.com/rs/zerolog/log"
@@ -12,13 +15,18 @@ import (
 	"strings"
 )
 
+//PrePlugins returns all plugins before proxy request
 var PrePlugins []PluginPointer
+
+//PostPlugsins returns all plugins after proxy request
 var PostPlugsins []PluginPointer
+
 var OtherPlugins []PluginPointer
 
 //PluginConfigPath 动态链接库定义文件地址
 var PluginConfigPath string
 
+//PluginInfo 插件配置信息
 type PluginInfo struct {
 	Name         string `json:"name"`
 	Path         string `json:"path"`
@@ -30,6 +38,7 @@ type PluginInfo struct {
 	Version      string `json:"version"`
 }
 
+//PluginPointer 插件信息与路由规则组合
 type PluginPointer struct {
 	PluginInfo
 	Plugin plugin.Plugin
@@ -119,7 +128,7 @@ func InitPlugins() {
 	}
 	handler(PluginConfigPath)
 
-	//todo 监听动态链接库配置文件/数据变化
+	//监听plugins文件变化
 	go func() {
 		watcher.AddWatcher("./data/resources/plugins.json", handler)
 	}()

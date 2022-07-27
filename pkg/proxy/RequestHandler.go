@@ -10,6 +10,7 @@ import (
 	"isc-route-service/pkg/exception"
 	"isc-route-service/pkg/handler"
 	"isc-route-service/pkg/middleware"
+	"isc-route-service/pkg/ratelimit"
 	tracer2 "isc-route-service/pkg/tracer"
 	plugins "isc-route-service/plugins/common"
 	"isc-route-service/utils"
@@ -17,7 +18,6 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-	"sync/atomic"
 	"time"
 )
 
@@ -56,7 +56,7 @@ func getRemoteIp(c *http.Request) string {
 	return c.RemoteAddr
 }
 
-var counter atomic.Value
+var bucket *ratelimit.Bucket
 
 //Forward http请求转发
 func Forward(c *gin.Context) {
@@ -75,24 +75,21 @@ func Forward(c *gin.Context) {
 		kernel = true
 	}
 	if !kernel {
-		v := counter.Load()
-		if v != nil {
-			counter.Store(v.(int) + 1)
-		} else {
-			v = 1
-			counter.Store(v)
+		if bucket == nil {
+			bucket = ratelimit.NewBucketWithQuantum(1*time.Second, int64(domain.ApplicationConfig.Server.Limit), 512)
 		}
-		defer func() {
-			counter.Store(counter.Load().(int) - 1)
-		}()
-		if v.(int) >= domain.ApplicationConfig.Server.Limit {
-			log.Warn().Msgf("已积累的请求数:%v", counter.Load())
-			c.JSON(http.StatusTooManyRequests, exception.BusinessException{
+		//获取令牌
+		before := bucket.Available()
+		tokenGet := bucket.TakeAvailable(1)
+		if tokenGet == 0 {
+			log.Warn().Msgf("未获取到令牌，拒绝访问")
+			c.JSON(http.StatusOK, exception.BusinessException{
 				Code:    1040429,
 				Message: fmt.Sprintf("请求太频繁，路由服务限流%d/s", domain.ApplicationConfig.Server.Limit),
 			})
 			return
 		}
+		log.Debug().Msgf("获取到令牌,前后数量比对：%d ->%d,tokenGet=%d", before, bucket.Available(), tokenGet)
 	}
 
 	ch := make(chan error)
@@ -163,10 +160,9 @@ func Forward(c *gin.Context) {
 	}(err)
 	result := <-resultChan
 	log.Debug().Msgf("代理转发完成\n%v", result)
-
 }
 
-//这里用于创建http client，默认5s超时，超时处理暂未实现
+//这里用于创建http client，默认5s超时
 var transport = &http.Transport{
 	Proxy: http.ProxyFromEnvironment,
 	DialContext: (&net.Dialer{
@@ -225,9 +221,6 @@ func hostReverseProxy(w http.ResponseWriter, req *http.Request, target domain.Ro
 			close(done)
 		}()
 		proxy.ServeHTTP(w, req)
-	}()
-	//回收
-	go func() {
 		target.AddProxy(proxy)
 	}()
 	return <-done

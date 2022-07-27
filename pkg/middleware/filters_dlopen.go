@@ -35,13 +35,13 @@ func PrepareMiddleWare(c *gin.Context, plugins []domain.PluginPointer) error {
 		if pp.Args < 0 {
 			runtimeError = method.(func() error)()
 			if x := recover(); x != nil {
-				runtimeError = x
+				runtimeError = x.(error)
 			}
 		} else {
 			data, _ := json.Marshal(pp.RouteInfo)
 			runtimeError = method.(func(*http.Request, []byte) error)(c.Request, data)
 			if x := recover(); x != nil {
-				runtimeError = x
+				runtimeError = x.(error)
 			}
 		}
 

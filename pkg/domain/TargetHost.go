@@ -4,7 +4,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
@@ -49,6 +52,74 @@ type RouteInfo struct {
 	Type int `json:"type"`
 }
 
+type DBRouteInfo struct {
+	Id         int `db:"id"`
+	Path       any `db:"path"`
+	ServiceId  any `db:"service_id"`
+	Url        any `db:"url"`
+	Protocol   any `db:"protocol"`
+	ExcludeUrl any `db:"exclude_url"`
+	SpecialUrl any `db:"special_url"`
+	CreateTime any `db:"create_time"`
+	UpdateTime any `db:"update_time"`
+}
+
+func B2S(bs []uint8) string {
+	var ba []byte
+	for _, b := range bs {
+		ba = append(ba, b)
+	}
+	return string(ba)
+}
+
+func db2RouteInfo(route DBRouteInfo) (*RouteInfo, error) {
+	path := route.Path
+	var r RouteInfo
+	if path == nil {
+		return nil, errors.New("path为空")
+	}
+	r.Id = Id(route.Id)
+	r.Path = B2S(path.([]uint8))
+	if route.ServiceId == nil {
+		return nil, errors.New("serviceId为空")
+	}
+	r.ServiceId = B2S(route.ServiceId.([]uint8))
+	protocol := route.Protocol
+	if protocol == nil {
+		r.Protocol = "HTTP"
+	} else {
+		r.Protocol = B2S(protocol.([]uint8))
+	}
+	if route.Url == nil {
+		return nil, errors.New("url不能为空")
+	}
+	r.Url = B2S(route.Url.([]uint8))
+	excludeUrl := route.ExcludeUrl
+	if excludeUrl == nil {
+		r.ExcludeUrl = ""
+	} else {
+		r.ExcludeUrl = B2S(excludeUrl.([]uint8))
+	}
+	specialUrl := route.SpecialUrl
+	if specialUrl == nil {
+		r.SpecialUrl = ""
+	} else {
+		r.SpecialUrl = B2S(specialUrl.([]uint8))
+	}
+	createTime := route.CreateTime
+	if createTime == nil {
+		r.CreateTime = ""
+	} else {
+		r.CreateTime = B2S(createTime.([]uint8))
+	}
+	updateTime := route.UpdateTime
+	if updateTime == nil {
+		r.UpdateTime = ""
+	} else {
+		r.UpdateTime = B2S(updateTime.([]uint8))
+	}
+	return &r, nil
+}
 func GetRouteInfoConfigPath() string {
 	cp := ConfigPath
 	if cp == "" {
@@ -56,7 +127,43 @@ func GetRouteInfoConfigPath() string {
 		fp := filepath.Join(wd, "data", "resources", "routeInfo.json")
 		log.Info().Msgf("路由配置文件:%s", fp)
 		if _, err := os.Stat(fp); os.IsNotExist(err) {
-			log.Fatal().Msg("路由配置文件不存在")
+			log.Error().Msg("路由配置文件不存在,从数据库中读取数据")
+			//"root:XXXX@tcp(127.0.0.1:3306)/test"
+			dataSourceName := fmt.Sprintf("%s:%s@tcp(%s)/%s", ApplicationConfig.Mysql.UserName, ApplicationConfig.Mysql.Password, ApplicationConfig.Mysql.Host, ApplicationConfig.Mysql.DataBase)
+			database, err := sqlx.Open("mysql", dataSourceName)
+			if err != nil {
+				log.Fatal().Msgf("路由配置文件不存在，且数据库连接异常%v", err)
+			}
+			defer database.Close()
+			var rs []DBRouteInfo
+			err = database.Select(&rs, "select id,path,service_id,url,protocol,exclude_url,special_url,create_time,update_time  from route_info")
+			if err != nil {
+				log.Fatal().Msgf("从数据库中读取路由服务信息异常%v", err)
+			}
+			//转换成routeInfo并写入到routeInfo.json
+			var rss []RouteInfo
+			for _, route := range rs {
+				r, err := db2RouteInfo(route)
+				if err != nil {
+					log.Warn().Msgf("路由信息转换异常：%v", err)
+					continue
+				}
+				rss = append(rss, *r)
+			}
+			data, err := json.Marshal(rss)
+			if err != nil {
+				log.Fatal().Msgf("路由信息序列化异常%v", err)
+			}
+			file, err := os.OpenFile(fp, os.O_CREATE|os.O_WRONLY, 0666)
+			if err != nil {
+				log.Fatal().Msgf("路由配置文件创建/打开异常%v", err)
+			}
+			_, err = file.Write(data)
+			if err != nil {
+				log.Fatal().Msgf("路由配置文件创建/打开异常%v", err)
+			}
+			log.Info().Msgf("完成从数据库中读取路由服务信息")
+			cp = fp
 		} else {
 			cp = fp
 		}
